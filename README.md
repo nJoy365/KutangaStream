@@ -2,6 +2,8 @@
 
 Self-hosted movie + TV streaming UI built on Next.js. Catalog metadata comes from [TMDB](https://www.themoviedb.org/); playback comes from a swappable list of third-party embed providers (vsembed.ru by default).
 
+![KutangaStream home page](docs/home.png)
+
 ## Features
 
 - Home page with **Movies / TV / All** tabs and rows: Trending, Now Playing, On the Air, Popular, Top Rated, Upcoming, Airing Today
