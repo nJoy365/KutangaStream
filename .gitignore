@@ -1,0 +1,25 @@
+# Dependencies
+/node_modules
+
+# Next.js
+/.next/
+/out/
+
+# Build artifacts
+*.tsbuildinfo
+next-env.d.ts
+
+# Env files (the *.example file is committed; everything else is local)
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# Claude Code session state
+.claude/
