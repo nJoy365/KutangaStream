@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import { ComingSoonBanner, isUpcoming } from "@/components/ComingSoonBanner";
 import { Row } from "@/components/Row";
 import { SaveButtons } from "@/components/SaveButtons";
 import { TrackContinueWatching } from "@/components/TrackContinueWatching";
@@ -46,6 +47,7 @@ export default async function MoviePage({ params }: Props) {
   if (!movie) notFound();
 
   const backdrop = backdropUrl(movie.backdropPath, "w1280");
+  const upcoming = isUpcoming(movie.releaseDate);
 
   return (
     <div>
@@ -65,36 +67,55 @@ export default async function MoviePage({ params }: Props) {
       </div>
 
       <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 -mt-20 sm:-mt-32 relative">
-        <WatchPlayer
-          type="movie"
-          tmdbId={movie.id}
-          imdbId={movie.imdbId}
-          title={movie.title}
-        />
+        {upcoming ? (
+          <ComingSoonBanner
+            releaseDate={movie.releaseDate!}
+            title={movie.title}
+            posterPath={movie.posterPath}
+            tagline={movie.tagline}
+            overview={movie.overview}
+            genres={movie.genres}
+          />
+        ) : (
+          <WatchPlayer
+            type="movie"
+            tmdbId={movie.id}
+            imdbId={movie.imdbId}
+            title={movie.title}
+          />
+        )}
 
-        <div className="mt-6 grid md:grid-cols-[1fr_280px] gap-8">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white">{movie.title}</h1>
-            <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--color-text-muted)] mt-2">
-              {movie.releaseYear && <span>{movie.releaseYear}</span>}
-              {movie.runtime ? <span>{movie.runtime} min</span> : null}
-              {movie.voteAverage > 0 && (
-                <span className="text-[var(--color-accent)]">★ {movie.voteAverage.toFixed(1)}</span>
+        {!upcoming && (
+          <div className="mt-6 grid md:grid-cols-[1fr_280px] gap-8">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-white">{movie.title}</h1>
+              <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--color-text-muted)] mt-2">
+                {movie.releaseYear && <span>{movie.releaseYear}</span>}
+                {movie.runtime ? <span>{movie.runtime} min</span> : null}
+                {movie.voteAverage > 0 && (
+                  <span className="text-[var(--color-accent)]">★ {movie.voteAverage.toFixed(1)}</span>
+                )}
+                {movie.genres.length > 0 && (
+                  <span>{movie.genres.map((g) => g.name).join(" · ")}</span>
+                )}
+              </div>
+              {movie.tagline && (
+                <p className="mt-4 italic text-[var(--color-text-muted)]">“{movie.tagline}”</p>
               )}
-              {movie.genres.length > 0 && (
-                <span>{movie.genres.map((g) => g.name).join(" · ")}</span>
-              )}
+              <p className="mt-4 text-base leading-relaxed text-zinc-200">{movie.overview}</p>
             </div>
-            {movie.tagline && (
-              <p className="mt-4 italic text-[var(--color-text-muted)]">“{movie.tagline}”</p>
-            )}
-            <p className="mt-4 text-base leading-relaxed text-zinc-200">{movie.overview}</p>
-          </div>
 
-          <aside className="space-y-3">
+            <aside className="space-y-3">
+              <SaveButtons media={movie} />
+            </aside>
+          </div>
+        )}
+
+        {upcoming && (
+          <div className="mt-6 flex justify-center md:justify-start">
             <SaveButtons media={movie} />
-          </aside>
-        </div>
+          </div>
+        )}
 
         {similar.length > 0 && (
           <div className="mt-12 -mx-4 sm:-mx-6">
@@ -103,7 +124,8 @@ export default async function MoviePage({ params }: Props) {
         )}
       </div>
 
-      <TrackContinueWatching media={movie} />
+      {/* Don't track unreleased titles in continue watching / history. */}
+      {!upcoming && <TrackContinueWatching media={movie} />}
     </div>
   );
 }

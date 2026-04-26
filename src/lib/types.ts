@@ -6,7 +6,10 @@ export interface MediaSummary {
   title: string;
   posterPath: string | null;
   backdropPath: string | null;
+  /** YYYY format. Convenience for display. */
   releaseYear: string | null;
+  /** Full YYYY-MM-DD. Used for the "NEW" badge / recency checks. */
+  releaseDate: string | null;
   voteAverage: number;
   overview: string;
 }

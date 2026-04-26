@@ -13,6 +13,7 @@ import {
   getTopRatedTv,
   getTrending,
   getUpcomingMovies,
+  getUpcomingTv,
 } from "@/lib/tmdb";
 
 export const revalidate = 1800; // 30 minutes
@@ -62,6 +63,7 @@ export default async function Home({ searchParams }: Props) {
     rows = [
       { title: "Airing Today", itemsPromise: getAiringTodayTv() },
       { title: "On the Air", itemsPromise: getOnTheAirTv() },
+      { title: "Upcoming Premieres", itemsPromise: getUpcomingTv() },
       { title: "Popular TV Shows", itemsPromise: getPopularTv() },
       { title: "Top Rated TV", itemsPromise: getTopRatedTv() },
     ];

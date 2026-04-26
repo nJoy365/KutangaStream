@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { posterUrl } from "@/lib/images";
+import { isNew } from "@/lib/time";
 import type { MediaSummary } from "@/lib/types";
 import { WatchProgress } from "./WatchProgress";
 
@@ -39,8 +40,15 @@ export function PosterCard({ media, priority }: Props) {
             ★ {media.voteAverage.toFixed(1)}
           </div>
         )}
-        <div className="absolute top-2 left-2 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded bg-[var(--color-accent)]/90 text-white">
-          {media.type === "movie" ? "Movie" : "TV"}
+        <div className="absolute top-2 left-2 flex flex-col items-start gap-1">
+          <span className="px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded bg-[var(--color-accent)]/90 text-white">
+            {media.type === "movie" ? "Movie" : "TV"}
+          </span>
+          {isNew(media.releaseDate) && (
+            <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-emerald-500 text-white">
+              New
+            </span>
+          )}
         </div>
         {media.type === "tv" && <WatchProgress tvId={media.id} />}
       </div>

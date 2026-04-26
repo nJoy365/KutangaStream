@@ -75,6 +75,7 @@ function mapToSummary(raw: RawMedia, fallbackType?: "movie" | "tv"): MediaSummar
     posterPath: raw.poster_path,
     backdropPath: raw.backdrop_path,
     releaseYear: date ? date.slice(0, 4) : null,
+    releaseDate: date,
     voteAverage: raw.vote_average,
     overview: raw.overview,
   };
@@ -126,6 +127,25 @@ export async function getOnTheAirTv(): Promise<MediaSummary[]> {
 
 export async function getAiringTodayTv(): Promise<MediaSummary[]> {
   const data = await tmdbFetch<{ results: RawMedia[] }>("/tv/airing_today");
+  return data.results.map((r) => mapToSummary(r, "tv"));
+}
+
+/**
+ * Shows premiering in the next ~90 days, sorted by popularity. TMDB has no
+ * single "upcoming TV" endpoint — this synthesizes one via the discover
+ * endpoint with a forward-looking first_air_date window.
+ */
+export async function getUpcomingTv(): Promise<MediaSummary[]> {
+  const today = new Date().toISOString().slice(0, 10);
+  const horizon = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+  const data = await tmdbFetch<{ results: RawMedia[] }>("/discover/tv", {
+    "first_air_date.gte": today,
+    "first_air_date.lte": horizon,
+    sort_by: "popularity.desc",
+    include_null_first_air_dates: "false",
+  });
   return data.results.map((r) => mapToSummary(r, "tv"));
 }
 

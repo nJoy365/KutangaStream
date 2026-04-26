@@ -56,6 +56,7 @@ export async function POST(req: Request) {
           posterPath: d.posterPath,
           backdropPath: d.backdropPath,
           releaseYear: d.releaseYear,
+          releaseDate: d.releaseDate,
           voteAverage: d.voteAverage,
           overview: d.overview,
           genres: d.genres.map((g) => g.name),

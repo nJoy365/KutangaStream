@@ -24,6 +24,7 @@ export async function GET(
         posterPath: m.posterPath,
         backdropPath: m.backdropPath,
         releaseYear: m.releaseYear,
+        releaseDate: m.releaseDate,
         voteAverage: m.voteAverage,
         overview: m.overview,
       };
@@ -38,6 +39,7 @@ export async function GET(
         posterPath: t.posterPath,
         backdropPath: t.backdropPath,
         releaseYear: t.releaseYear,
+        releaseDate: t.releaseDate,
         voteAverage: t.voteAverage,
         overview: t.overview,
       };

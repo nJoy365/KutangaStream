@@ -19,3 +19,16 @@ export function relativeTime(ts: number, now = Date.now()): string {
 export function absoluteTime(ts: number): string {
   return new Date(ts).toLocaleString();
 }
+
+/**
+ * Returns true if a YYYY-MM-DD date string is within the last `days` days
+ * (default 90). Future dates and invalid input return false.
+ */
+export function isNew(dateStr: string | null | undefined, days = 90): boolean {
+  if (!dateStr) return false;
+  const t = Date.parse(dateStr);
+  if (Number.isNaN(t)) return false;
+  const now = Date.now();
+  if (t > now) return false; // future release
+  return now - t <= days * 24 * 60 * 60 * 1000;
+}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import { ComingSoonBanner, isUpcoming } from "@/components/ComingSoonBanner";
 import { EpisodePicker } from "@/components/EpisodePicker";
 import { Row } from "@/components/Row";
 import { SaveButtons } from "@/components/SaveButtons";
@@ -46,6 +47,7 @@ export default async function TvPage({ params, searchParams }: Props) {
   const tv = await getTvDetails(id).catch(() => null);
   if (!tv) notFound();
 
+  const upcoming = isUpcoming(tv.releaseDate);
   const hasExplicitParams = Boolean(sp.season && sp.episode);
 
   const seasonNum = (() => {
@@ -58,8 +60,9 @@ export default async function TvPage({ params, searchParams }: Props) {
     return Number.isFinite(n) && n > 0 ? n : 1;
   })();
 
+  // For unreleased shows we don't fetch episodes (none exist yet).
   const [episodes, similar] = await Promise.all([
-    getSeasonEpisodes(id, seasonNum).catch(() => []),
+    upcoming ? Promise.resolve([]) : getSeasonEpisodes(id, seasonNum).catch(() => []),
     getSimilar("tv", id).catch(() => []),
   ]);
 
@@ -83,62 +86,81 @@ export default async function TvPage({ params, searchParams }: Props) {
       </div>
 
       <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 -mt-20 sm:-mt-32 relative">
-        <WatchPlayer
-          type="tv"
-          tmdbId={tv.id}
-          imdbId={tv.imdbId}
-          season={seasonNum}
-          episode={episodeNum}
-          title={`${tv.title} S${seasonNum}E${episodeNum}`}
-        />
+        {upcoming ? (
+          <ComingSoonBanner
+            releaseDate={tv.releaseDate!}
+            title={tv.title}
+            posterPath={tv.posterPath}
+            tagline={tv.tagline}
+            overview={tv.overview}
+            genres={tv.genres}
+          />
+        ) : (
+          <WatchPlayer
+            type="tv"
+            tmdbId={tv.id}
+            imdbId={tv.imdbId}
+            season={seasonNum}
+            episode={episodeNum}
+            title={`${tv.title} S${seasonNum}E${episodeNum}`}
+          />
+        )}
 
-        <div className="mt-6 grid lg:grid-cols-[1fr_400px] gap-8">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white">{tv.title}</h1>
-            <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--color-text-muted)] mt-2">
-              {tv.releaseYear && <span>{tv.releaseYear}</span>}
-              <span>
-                {tv.numberOfSeasons} season{tv.numberOfSeasons === 1 ? "" : "s"} · {tv.numberOfEpisodes} episodes
-              </span>
-              {tv.voteAverage > 0 && (
-                <span className="text-[var(--color-accent)]">★ {tv.voteAverage.toFixed(1)}</span>
-              )}
-              {tv.genres.length > 0 && (
-                <span>{tv.genres.map((g) => g.name).join(" · ")}</span>
-              )}
-            </div>
-
-            {currentEpisode && (
-              <div className="mt-4 p-4 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)]">
-                <p className="text-xs uppercase tracking-wider text-[var(--color-text-muted)] mb-1">
-                  Now Playing · S{seasonNum} · E{episodeNum}
-                </p>
-                <h2 className="text-lg font-semibold text-white">{currentEpisode.name}</h2>
-                <p className="text-sm text-zinc-300 mt-1">{currentEpisode.overview}</p>
+        {!upcoming && (
+          <div className="mt-6 grid lg:grid-cols-[1fr_400px] gap-8">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-white">{tv.title}</h1>
+              <div className="flex flex-wrap items-center gap-3 text-sm text-[var(--color-text-muted)] mt-2">
+                {tv.releaseYear && <span>{tv.releaseYear}</span>}
+                <span>
+                  {tv.numberOfSeasons} season{tv.numberOfSeasons === 1 ? "" : "s"} · {tv.numberOfEpisodes} episodes
+                </span>
+                {tv.voteAverage > 0 && (
+                  <span className="text-[var(--color-accent)]">★ {tv.voteAverage.toFixed(1)}</span>
+                )}
+                {tv.genres.length > 0 && (
+                  <span>{tv.genres.map((g) => g.name).join(" · ")}</span>
+                )}
               </div>
-            )}
 
-            {tv.tagline && (
-              <p className="mt-4 italic text-[var(--color-text-muted)]">“{tv.tagline}”</p>
-            )}
-            <p className="mt-4 text-base leading-relaxed text-zinc-200">{tv.overview}</p>
+              {currentEpisode && (
+                <div className="mt-4 p-4 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)]">
+                  <p className="text-xs uppercase tracking-wider text-[var(--color-text-muted)] mb-1">
+                    Now Playing · S{seasonNum} · E{episodeNum}
+                  </p>
+                  <h2 className="text-lg font-semibold text-white">{currentEpisode.name}</h2>
+                  <p className="text-sm text-zinc-300 mt-1">{currentEpisode.overview}</p>
+                </div>
+              )}
 
-            <div className="mt-6">
-              <SaveButtons media={tv} />
+              {tv.tagline && (
+                <p className="mt-4 italic text-[var(--color-text-muted)]">“{tv.tagline}”</p>
+              )}
+              <p className="mt-4 text-base leading-relaxed text-zinc-200">{tv.overview}</p>
+
+              <div className="mt-6">
+                <SaveButtons media={tv} />
+              </div>
             </div>
-          </div>
 
-          <aside>
-            <h2 className="text-lg font-semibold text-white mb-3">Episodes</h2>
-            <EpisodePicker
-              tvId={tv.id}
-              seasons={tv.seasons}
-              currentSeason={seasonNum}
-              currentEpisode={episodeNum}
-              episodes={episodes}
-            />
-          </aside>
-        </div>
+            <aside>
+              <h2 className="text-lg font-semibold text-white mb-3">Episodes</h2>
+              <EpisodePicker
+                tvId={tv.id}
+                seasons={tv.seasons}
+                currentSeason={seasonNum}
+                currentEpisode={episodeNum}
+                episodes={episodes}
+              />
+            </aside>
+          </div>
+        )}
+
+        {upcoming && (
+          <div className="mt-6 flex justify-center md:justify-start">
+            <SaveButtons media={tv} />
+          </div>
+        )}
 
         {similar.length > 0 && (
           <div className="mt-12 -mx-4 sm:-mx-6">
@@ -147,13 +169,18 @@ export default async function TvPage({ params, searchParams }: Props) {
         )}
       </div>
 
-      <SmartTvDefaultRedirect tvId={tv.id} hasExplicitParams={hasExplicitParams} />
-      <TrackContinueWatching
-        media={tv}
-        season={seasonNum}
-        episode={episodeNum}
-        hasExplicitParams={hasExplicitParams}
-      />
+      {/* Skip the smart redirect + tracker for unreleased shows. */}
+      {!upcoming && (
+        <>
+          <SmartTvDefaultRedirect tvId={tv.id} hasExplicitParams={hasExplicitParams} />
+          <TrackContinueWatching
+            media={tv}
+            season={seasonNum}
+            episode={episodeNum}
+            hasExplicitParams={hasExplicitParams}
+          />
+        </>
+      )}
     </div>
   );
 }

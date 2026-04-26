@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
 import { useWatchedEpisodes } from "@/hooks/useWatchedEpisodes";
 import { stillUrl } from "@/lib/images";
+import { isNew } from "@/lib/time";
 import type { Episode, SeasonSummary } from "@/lib/types";
 
 interface Props {
@@ -149,6 +150,11 @@ export function EpisodePicker({
                     <div className="flex items-center gap-2 text-[11px] text-[var(--color-text-muted)] mt-0.5">
                       {ep.airDate && <span>{ep.airDate}</span>}
                       {ep.runtime ? <span>{ep.runtime}m</span> : null}
+                      {isNew(ep.airDate) && (
+                        <span className="px-1 py-0 text-[9px] font-bold uppercase rounded bg-emerald-500 text-white">
+                          New
+                        </span>
+                      )}
                       {watched && <span className="text-[var(--color-accent)]">✓ Watched</span>}
                     </div>
                     <p className="text-xs text-[var(--color-text-muted)] line-clamp-2 mt-1">
