@@ -6,19 +6,34 @@ Self-hosted movie + TV streaming UI built on Next.js. Catalog metadata comes fro
 
 ## Features
 
-- Home page with **Movies / TV / All** tabs and rows: Trending, Now Playing, On the Air, Popular, Top Rated, Upcoming, Airing Today
-- Combined movie + TV search
-- Movie watch page with embedded player + similar titles
-- TV watch page with season/episode picker, "Now Playing" episode summary, and Up-Next autoplay
-- **Swappable embed sources** — toggle between VSEmbed, VidSrc, VidSrc.to, Embed.su, AutoEmbed, 2Embed, MoviesAPI on the watch page (preference persisted)
-- **Watch history** at `/history` with filters by title, type, genre, and date range
-- LocalStorage-backed quality-of-life features:
-  - Watchlist
-  - Favorites
-  - Continue Watching (auto-resumes the last episode you opened)
-  - Per-episode "watched" markers (toggle ◯ / ✓)
+### Browse & search
+- Home page with **All / Movies / TV** tabs and rows: Trending, Now Playing, On the Air, Popular, Top Rated, Upcoming, Airing Today
+- **Search-as-you-type** dropdown in the navbar with keyboard navigation (↑/↓/Enter/Esc), debounced + AbortController-cancelled
+- Full search results page at `/search?q=...`
+
+### Watch
+- Movie watch page: backdrop hero → embedded player → metadata → "More Like This"
+- TV watch page: same, plus a season/episode picker that auto-scrolls to the current episode
+- **Smart "resume last episode"**: opening `/tv/[id]` without `?season=&episode=` jumps to wherever you left off
+- **Soft client-side navigation** when changing episodes (no full page reload, no scroll jump)
+- **7 swappable embed sources** — toggle between VSEmbed, VidSrc, VidSrc.to, Embed.su, AutoEmbed, 2Embed, MoviesAPI on the watch page; preference persists per device
+- **Subtitle language preference** in Settings, passed to embed providers via `ds_lang`
+
+### Personal data (all local-only)
+- **Watchlist** + **Favorites** — heart / bookmark any title
+- **Continue Watching** row on home — top 20 most recent
+- **Watch history** at `/history` with filters by title, type, **genre**, and date range
+- **Per-episode "watched"** markers (toggle ◯ / ✓), plus bulk **"Mark season watched/unwatched"** in the episode picker
+- **Watch progress badges** on TV poster cards anywhere they appear ("✓ N watched")
+- **Backup & restore** in Settings — exports as a gzip+base64 envelope (~30% the size of raw JSON), imports JSON file or pasted text, with a confirm prompt before overwriting existing data. Clipboard fallback works on HTTP (e.g. when accessing the LAN IP from a phone).
+- **Toast notifications** on save/remove actions
+- **Default home filter** preference (mirrored to a cookie so the server-rendered home page honors it on first request)
+
+### UX polish
 - Dark UI with violet accent, smooth horizontal row scrollers
-- Server-side rendering with cached TMDB calls (30-min revalidate)
+- **Mobile-friendly**: bottom nav (Home / Watchlist / Favorites / History / Settings) with active-route highlighting + iOS safe-area inset, tighter responsive padding, episode picker scopes its own scroll
+- Loading skeletons for route transitions
+- Per-page browser tab titles (`<show> · KutangaStream`) and Open Graph tags for link previews
 
 ## Setup
 
@@ -56,33 +71,71 @@ The compose file reads `.env.local` directly, so the same env file works for `np
 
 To stop: `docker compose down`. To rebuild after code changes: `docker compose up --build -d`.
 
+## Storage architecture
+
+The architecture is *deliberately split between server and browser*:
+
+- **Server (Next.js):** holds the TMDB key, makes all upstream API calls, never sends the key to the client. The watch pages are server components that render with full metadata in the initial HTML.
+- **Browser (`localStorage`):** stores **only your user actions** — `{ type, id, savedAt }` for watchlist/favorites, `{ type, id, watchedAt, season?, episode? }` for history, etc. No posters, no titles, no genres. Anything derivable from a TMDB id is fetched on demand.
+- **Browser (`sessionStorage`):** caches `MediaSummary` payloads for the current tab. The Watchlist / Favorites / History / Continue Watching pages call `POST /api/media-batch` with their saved refs, get back metadata for everything in one round-trip, and re-render. Cached refs render synchronously on subsequent navigations.
+
+Why? Two reasons:
+1. **localStorage stays tiny** even after years of use — backups are small, parses are fast, no risk of hitting the ~5 MB browser quota.
+2. **Metadata is always fresh** — if TMDB updates a poster or rating, you see it on next view rather than a stale cached version from when you first added a title.
+
+A one-time migration (`<Migrate />` in the root layout) strips any pre-refactor v1 entries down to the new minimal v2 shape on first mount, then deletes the v1 keys. Idempotent and silent.
+
+### Backup format
+
+Backups are a small JSON envelope wrapping a **gzip-compressed, base64-encoded** payload of the raw v2 keys:
+
+```json
+{
+  "app": "KutangaStream",
+  "version": 2,
+  "exportedAt": "2026-04-26T...",
+  "encoding": "gzip+base64",
+  "data": "H4sIAAAAAAAAA1WPwQ..."
+}
+```
+
+The `Settings → Backup & restore` panel offers download-as-file, copy-as-text (with a textarea fallback for non-secure HTTP contexts), and import from file or pasted text. Legacy v1 backups (from before the refactor) still import — they're written to v1 keys and the migration runs immediately to convert.
+
 ## Project layout
 
 ```
 src/
-  app/                    # Next.js App Router pages
-    page.tsx              # Home (filter tabs + rows)
-    search/page.tsx       # /search?q=
-    movie/[id]/page.tsx   # Movie watch page
-    tv/[id]/page.tsx      # TV watch page (?season=&episode=)
-    watchlist/page.tsx
-    favorites/page.tsx
-    history/page.tsx      # Watch history with filters
-  components/             # UI: Navbar, PosterCard, Row, WatchPlayer, EpisodePicker, …
-  hooks/                  # localStorage hooks (useSyncExternalStore-based)
+  app/                              # Next.js App Router pages
+    page.tsx                        # Home (filter tabs + rows)
+    layout.tsx                      # Root layout (Toast, Migrate, Navbar, BottomNav)
+    loading.tsx                     # Home skeleton
+    search/page.tsx                 # /search?q=
+    movie/[id]/{page,loading}.tsx
+    tv/[id]/{page,loading}.tsx
+    watchlist/{page,layout}.tsx
+    favorites/{page,layout}.tsx
+    history/{page,layout}.tsx
+    settings/{page,layout}.tsx      # Subtitle lang + home filter + backup/restore
+    api/
+      search/route.ts               # Typeahead + full search
+      media/[type]/[id]/route.ts    # Single-item hydration
+      media-batch/route.ts          # Bulk hydration for saved-list pages
+  components/                       # UI primitives + watch-page widgets
+  hooks/                            # localStorage hooks + useMediaBatch + useSettings
   lib/
-    tmdb.ts               # TMDB client (server-only)
-    embedSources.ts       # Third-party embed provider registry
-    images.ts             # TMDB image URL builder
-    storage.ts            # localStorage helpers
-    time.ts               # Relative-time formatter
-    types.ts              # Shared types
+    tmdb.ts                         # TMDB client (server-only)
+    embedSources.ts                 # Third-party embed provider registry
+    backup.ts                       # gzip+base64 encode/decode
+    storage.ts                      # Storage keys + minimal types
+    images.ts                       # TMDB image URL builder
+    time.ts                         # Relative-time formatter
+    types.ts                        # Shared types
 ```
 
 ## Notes
 
 - Posters and metadata come from TMDB; the embed iframe streams from a third-party provider you choose. None of those services are hosted by this app.
 - The TMDB key is **server-only** — it never leaves the Next.js server, so the bundle stays clean.
-- All "saved" data (watchlist, favorites, continue watching, watched episodes, history) lives in your browser's `localStorage`. Clearing site data wipes it.
 - Continue Watching tracks at the *episode* level, not the second — the embed iframe doesn't expose playback position.
 - For ad-blocking inside the player, install [uBlock Origin](https://ublockorigin.com/) in your browser, or run [AdGuard Home](https://adguard.com/en/adguard-home/overview.html) on your network.
+- Local data lives in your browser's storage. Use **Settings → Backup & restore** before clearing site data or moving to a new device.
