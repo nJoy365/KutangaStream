@@ -25,3 +25,10 @@ export function stillUrl(
 ): string | null {
   return path ? `${IMG_BASE}/${size}${path}` : null;
 }
+
+export function profileUrl(
+  path: string | null,
+  size: "w45" | "w185" | "h632" | "original" = "w185",
+): string | null {
+  return path ? `${IMG_BASE}/${size}${path}` : null;
+}

@@ -149,6 +149,80 @@ export async function getUpcomingTv(): Promise<MediaSummary[]> {
   return data.results.map((r) => mapToSummary(r, "tv"));
 }
 
+interface RawReleaseDates {
+  results: {
+    iso_3166_1: string;
+    release_dates: { certification: string; type: number }[];
+  }[];
+}
+
+interface RawContentRatings {
+  results: { iso_3166_1: string; rating: string }[];
+}
+
+function pickUsCertification(rd: RawReleaseDates | undefined): string | null {
+  if (!rd) return null;
+  const us = rd.results.find((r) => r.iso_3166_1 === "US");
+  if (!us) return null;
+  for (const e of us.release_dates) {
+    if (e.certification?.trim()) return e.certification.trim();
+  }
+  return null;
+}
+
+function pickUsContentRating(cr: RawContentRatings | undefined): string | null {
+  if (!cr) return null;
+  const us = cr.results.find((r) => r.iso_3166_1 === "US");
+  return us?.rating?.trim() || null;
+}
+
+interface RawVideo {
+  key: string;
+  site: string;
+  type: string;
+  official: boolean;
+  name: string;
+}
+
+function pickTrailerKey(
+  videos: { results: RawVideo[] } | undefined,
+): string | null {
+  if (!videos?.results) return null;
+  const yt = videos.results.filter((v) => v.site === "YouTube");
+  // Prefer official trailer, then any trailer, then a teaser, then anything.
+  return (
+    yt.find((v) => v.type === "Trailer" && v.official)?.key ??
+    yt.find((v) => v.type === "Trailer")?.key ??
+    yt.find((v) => v.type === "Teaser")?.key ??
+    yt[0]?.key ??
+    null
+  );
+}
+
+interface RawCastMember {
+  id: number;
+  name: string;
+  character: string;
+  profile_path: string | null;
+  order: number;
+}
+
+function pickCast(
+  credits: { cast: RawCastMember[] } | undefined,
+  limit = 12,
+): import("./types").CastMember[] {
+  if (!credits?.cast) return [];
+  return [...credits.cast]
+    .sort((a, b) => a.order - b.order)
+    .slice(0, limit)
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      character: c.character,
+      profilePath: c.profile_path,
+    }));
+}
+
 export async function getMovieDetails(id: number): Promise<MovieDetails> {
   const data = await tmdbFetch<
     RawMedia & {
@@ -156,8 +230,13 @@ export async function getMovieDetails(id: number): Promise<MovieDetails> {
       runtime: number | null;
       genres: { id: number; name: string }[];
       tagline: string | null;
+      release_dates?: RawReleaseDates;
+      videos?: { results: RawVideo[] };
+      credits?: { cast: RawCastMember[] };
     }
-  >(`/movie/${id}`);
+  >(`/movie/${id}`, {
+    append_to_response: "release_dates,videos,credits",
+  });
   const summary = mapToSummary(data, "movie");
   return {
     ...summary,
@@ -166,6 +245,9 @@ export async function getMovieDetails(id: number): Promise<MovieDetails> {
     runtime: data.runtime,
     genres: data.genres,
     tagline: data.tagline,
+    certification: pickUsCertification(data.release_dates),
+    trailerKey: pickTrailerKey(data.videos),
+    cast: pickCast(data.credits),
   };
 }
 
@@ -177,6 +259,9 @@ export async function getTvDetails(id: number): Promise<TvDetails> {
       genres: { id: number; name: string }[];
       tagline: string | null;
       external_ids?: { imdb_id: string | null };
+      content_ratings?: RawContentRatings;
+      videos?: { results: RawVideo[] };
+      credits?: { cast: RawCastMember[] };
       seasons: {
         id: number;
         season_number: number;
@@ -187,7 +272,9 @@ export async function getTvDetails(id: number): Promise<TvDetails> {
         overview: string;
       }[];
     }
-  >(`/tv/${id}`, { append_to_response: "external_ids" });
+  >(`/tv/${id}`, {
+    append_to_response: "external_ids,content_ratings,videos,credits",
+  });
   const summary = mapToSummary(data, "tv");
   const seasons: SeasonSummary[] = data.seasons
     .filter((s) => s.season_number >= 1) // skip "Specials" (season 0) for cleaner UI
@@ -209,6 +296,9 @@ export async function getTvDetails(id: number): Promise<TvDetails> {
     genres: data.genres,
     tagline: data.tagline,
     seasons,
+    certification: pickUsContentRating(data.content_ratings),
+    trailerKey: pickTrailerKey(data.videos),
+    cast: pickCast(data.credits),
   };
 }
 
@@ -247,6 +337,132 @@ export async function getSimilar(
   id: number,
 ): Promise<MediaSummary[]> {
   const data = await tmdbFetch<{ results: RawMedia[] }>(`/${type}/${id}/similar`);
+  return data.results.map((r) => mapToSummary(r, type));
+}
+
+/**
+ * Discover movies filtered by US certification (e.g. "PG-13", "R"). TMDB
+ * supports this natively on /discover/movie via certification_country +
+ * certification.
+ */
+export async function discoverByCertification(
+  cert: string,
+  sortBy: string,
+  extra: Record<string, string | number> = {},
+): Promise<MediaSummary[]> {
+  const data = await tmdbFetch<{ results: RawMedia[] }>("/discover/movie", {
+    certification_country: "US",
+    certification: cert,
+    sort_by: sortBy,
+    include_adult: "false",
+    ...extra,
+  });
+  return data.results.map((r) => mapToSummary(r, "movie"));
+}
+
+type TvRatingSource = "popular" | "top_rated" | "latest";
+
+/**
+ * Internal helper. Fetches `pages` × ~20 candidate TV shows from a chosen
+ * upstream list, then post-filters them by US content rating. Each show's
+ * /content_ratings response is cached for 24h so subsequent rows for the
+ * same show are free.
+ *
+ * TMDB doesn't expose content_rating as a /discover/tv filter — this
+ * post-filter is the workaround. Results will be sparse for ratings that
+ * don't appear often (TV-Y, TV-G) or in the less-popular tail (top_rated).
+ */
+async function tvByContentRatingFrom(
+  rating: string,
+  source: TvRatingSource,
+  pages = 2,
+): Promise<MediaSummary[]> {
+  const today = new Date().toISOString().slice(0, 10);
+  const path =
+    source === "latest" ? "/discover/tv" : `/tv/${source}`;
+  const baseParams: Record<string, string | number> =
+    source === "latest"
+      ? {
+          sort_by: "first_air_date.desc",
+          "first_air_date.lte": today,
+          include_null_first_air_dates: "false",
+        }
+      : {};
+
+  const responses = await Promise.all(
+    Array.from({ length: pages }, (_, i) =>
+      tmdbFetch<{ results: RawMedia[] }>(path, {
+        ...baseParams,
+        page: i + 1,
+      }).catch(() => ({ results: [] as RawMedia[] })),
+    ),
+  );
+  const candidates = responses.flatMap((r) => r.results);
+
+  const ratings = await Promise.all(
+    candidates.map(async (show) => {
+      const cr = await tmdbFetch<RawContentRatings>(
+        `/tv/${show.id}/content_ratings`,
+        {},
+        60 * 60 * 24,
+      ).catch(() => ({ results: [] as RawContentRatings["results"] }));
+      return { id: show.id, rating: pickUsContentRating(cr) };
+    }),
+  );
+
+  const matched = new Set(
+    ratings.filter((r) => r.rating === rating).map((r) => r.id),
+  );
+  // Preserve upstream order, dedupe (same show can appear across pages).
+  const seen = new Set<number>();
+  const result: MediaSummary[] = [];
+  for (const c of candidates) {
+    if (!matched.has(c.id) || seen.has(c.id)) continue;
+    seen.add(c.id);
+    result.push(mapToSummary(c, "tv"));
+  }
+  return result;
+}
+
+export function getPopularTvByContentRating(rating: string) {
+  return tvByContentRatingFrom(rating, "popular");
+}
+
+export function getTopRatedTvByContentRating(rating: string) {
+  return tvByContentRatingFrom(rating, "top_rated");
+}
+
+export function getLatestTvByContentRating(rating: string) {
+  return tvByContentRatingFrom(rating, "latest");
+}
+
+export async function getGenres(
+  type: "movie" | "tv",
+): Promise<{ id: number; name: string }[]> {
+  const data = await tmdbFetch<{ genres: { id: number; name: string }[] }>(
+    `/genre/${type}/list`,
+    {},
+    60 * 60 * 24, // genre list is essentially static — cache for a day
+  );
+  return data.genres;
+}
+
+/**
+ * Generic discover wrapper for genre-filtered browsing. `extra` lets callers
+ * tack on `vote_count.gte` / date ranges / etc. without bloating the API.
+ */
+export async function discoverByGenre(
+  type: "movie" | "tv",
+  genreId: number,
+  sortBy: string,
+  extra: Record<string, string | number> = {},
+): Promise<MediaSummary[]> {
+  const data = await tmdbFetch<{ results: RawMedia[] }>(`/discover/${type}`, {
+    with_genres: genreId,
+    sort_by: sortBy,
+    include_adult: "false",
+    ...extra,
+  });
   return data.results.map((r) => mapToSummary(r, type));
 }
 

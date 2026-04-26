@@ -1,20 +1,63 @@
 "use client";
+import { useMemo } from "react";
 import { useContinueWatching } from "@/hooks/useContinueWatching";
+import { useLocalStorageJSON } from "@/hooks/useLocalStorageJSON";
 import { useMediaBatch } from "@/hooks/useMediaBatch";
-import { itemKey } from "@/lib/storage";
+import {
+  itemKey,
+  STORAGE_KEYS,
+  type WatchedEpisodeKey,
+} from "@/lib/storage";
 import { Row } from "./Row";
 
+const EMPTY_KEYS: WatchedEpisodeKey[] = [];
+
+/**
+ * Continue Watching is TV-only: we have no way to tell whether a movie was
+ * actually watched (the iframe doesn't expose playback position), so movies
+ * are filtered out entirely. For TV shows, we hide entries where every
+ * episode of the show has been marked watched.
+ */
 export function ContinueWatchingRow() {
   const { items, hydrated } = useContinueWatching();
-  const { data } = useMediaBatch(items);
-  if (!hydrated || items.length === 0) return null;
+  const { value: watchedKeys } = useLocalStorageJSON<WatchedEpisodeKey[]>(
+    STORAGE_KEYS.watchedEpisodes,
+    EMPTY_KEYS,
+  );
 
-  // Preserve the order of CW entries (most recent first); drop any whose
-  // metadata hasn't fetched yet rather than show placeholders in a row.
-  const summaries = items
-    .map((i) => data.get(itemKey(i.type, i.id)))
+  // Only TV (defensive — Migrate strips legacy movie entries on boot).
+  const tvItems = useMemo(() => items.filter((i) => i.type === "tv"), [items]);
+  const { data } = useMediaBatch(tvItems);
+
+  // Build a map of tvId → watched-episode count for this show.
+  const watchedByShow = useMemo(() => {
+    const m = new Map<number, number>();
+    for (const k of watchedKeys) {
+      const dash = k.indexOf("-");
+      if (dash <= 0) continue;
+      const tvId = parseInt(k.slice(0, dash), 10);
+      if (!Number.isFinite(tvId)) continue;
+      m.set(tvId, (m.get(tvId) ?? 0) + 1);
+    }
+    return m;
+  }, [watchedKeys]);
+
+  if (!hydrated || tvItems.length === 0) return null;
+
+  // Drop shows whose metadata says everything's been watched. If episode
+  // count isn't loaded yet, keep the show — better to show than hide while
+  // the batch fetch is in flight.
+  const summaries = tvItems
+    .map((item) => {
+      const meta = data.get(itemKey(item.type, item.id));
+      if (!meta) return null;
+      const watched = watchedByShow.get(item.id) ?? 0;
+      const total = meta.episodeCount;
+      if (total !== undefined && total > 0 && watched >= total) return null;
+      return meta;
+    })
     .filter((m): m is NonNullable<typeof m> => Boolean(m));
-  if (summaries.length === 0) return null;
 
+  if (summaries.length === 0) return null;
   return <Row title="Continue Watching" items={summaries} />;
 }

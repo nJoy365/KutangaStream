@@ -49,11 +49,12 @@ export function TrackContinueWatching({
       }
     }
 
+    // Continue Watching is TV-only — we can't tell whether a movie was
+    // actually watched (the iframe gives us no playback signal), so we
+    // refuse to mark them. History still tracks all opens for both types.
     if (media.type === "tv" && season && episode) {
       upsert(media, { season, episode });
       markWatched(season, episode);
-    } else {
-      upsert(media);
     }
     addHistory({
       type: media.type,

@@ -103,6 +103,27 @@ function migrate(): void {
     window.localStorage.removeItem(k);
   }
 
+  // Tidy: Continue Watching is TV-only now. Drop any legacy movie entries
+  // that may have been written before this rule existed. Idempotent — only
+  // writes back if there's actually something to remove.
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEYS.continueWatching);
+    if (raw) {
+      const arr = JSON.parse(raw) as { type: string }[];
+      if (Array.isArray(arr)) {
+        const cleaned = arr.filter((i) => i?.type === "tv");
+        if (cleaned.length !== arr.length) {
+          window.localStorage.setItem(
+            STORAGE_KEYS.continueWatching,
+            JSON.stringify(cleaned),
+          );
+        }
+      }
+    }
+  } catch {
+    // ignore — bad localStorage shouldn't crash boot
+  }
+
   // Notify any mounted hooks so they re-read from v2 keys.
   window.dispatchEvent(new Event("ms-storage-change"));
 }

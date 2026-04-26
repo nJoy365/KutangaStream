@@ -48,7 +48,10 @@ export async function POST(req: Request) {
   await Promise.all(
     refs.map(async (r) => {
       try {
-        const d = r.type === "movie" ? await getMovieDetails(r.id) : await getTvDetails(r.id);
+        const d =
+          r.type === "movie"
+            ? await getMovieDetails(r.id)
+            : await getTvDetails(r.id);
         results[itemKey(r.type, r.id)] = {
           id: d.id,
           type: r.type,
@@ -60,6 +63,9 @@ export async function POST(req: Request) {
           voteAverage: d.voteAverage,
           overview: d.overview,
           genres: d.genres.map((g) => g.name),
+          ...(d.type === "tv"
+            ? { episodeCount: d.numberOfEpisodes }
+            : {}),
         };
       } catch {
         // omitted — caller renders placeholder

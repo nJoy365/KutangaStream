@@ -1,23 +1,33 @@
 import Image from "next/image";
+import Link from "next/link";
 import { posterUrl } from "@/lib/images";
 import { relativeTime } from "@/lib/time";
+import type { MediaType } from "@/lib/types";
+import { RatingBadge } from "./RatingBadge";
+import { TrailerButton } from "./TrailerButton";
 
 interface Props {
+  type: MediaType;
   releaseDate: string; // YYYY-MM-DD
   title: string;
   posterPath: string | null;
   tagline?: string | null;
   overview: string;
   genres: { id: number; name: string }[];
+  certification?: string | null;
+  trailerKey?: string | null;
 }
 
 export function ComingSoonBanner({
+  type,
   releaseDate,
   title,
   posterPath,
   tagline,
   overview,
   genres,
+  certification,
+  trailerKey,
 }: Props) {
   const date = new Date(releaseDate);
   const longDate = date.toLocaleDateString(undefined, {
@@ -53,6 +63,11 @@ export function ComingSoonBanner({
           <span className="font-semibold text-white">{longDate}</span>{" "}
           <span className="text-[var(--color-text-muted)]">· {relative}</span>
         </p>
+        {certification && (
+          <div className="mt-3 flex justify-center md:justify-start">
+            <RatingBadge code={certification} type={type} />
+          </div>
+        )}
         {tagline && (
           <p className="mt-5 italic text-[var(--color-text-muted)]">
             “{tagline}”
@@ -66,13 +81,19 @@ export function ComingSoonBanner({
         {genres.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-5 justify-center md:justify-start">
             {genres.map((g) => (
-              <span
+              <Link
                 key={g.id}
-                className="px-2 py-0.5 text-xs rounded border border-[var(--color-border)] text-[var(--color-text-muted)]"
+                href={`/genre/${g.id}?type=${type}`}
+                className="px-2 py-0.5 text-xs rounded border border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)] hover:text-white transition-colors"
               >
                 {g.name}
-              </span>
+              </Link>
             ))}
+          </div>
+        )}
+        {trailerKey && (
+          <div className="mt-6 flex justify-center md:justify-start">
+            <TrailerButton youtubeKey={trailerKey} title={title} />
           </div>
         )}
         <p className="text-xs text-[var(--color-text-muted)] mt-6 max-w-md mx-auto md:mx-0">

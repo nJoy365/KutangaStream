@@ -15,11 +15,21 @@ export interface MediaSummary {
 }
 
 // Returned by /api/media-batch — adds genre names for places that filter by
-// genre (history page). Kept separate so MediaSummary itself stays minimal
-// and doesn't conflict with the {id,name}[] shape used inside MovieDetails
-// /TvDetails.
+// genre (history page) and episodeCount for TV (so Continue Watching can
+// hide shows you've finished). Kept separate so MediaSummary itself stays
+// minimal and doesn't conflict with the {id,name}[] shape used inside
+// MovieDetails / TvDetails.
 export interface MediaSummaryWithGenres extends MediaSummary {
   genres: string[];
+  /** TV only — total number of episodes across all seasons. */
+  episodeCount?: number;
+}
+
+export interface CastMember {
+  id: number;
+  name: string;
+  character: string;
+  profilePath: string | null;
 }
 
 export interface MovieDetails extends MediaSummary {
@@ -28,6 +38,11 @@ export interface MovieDetails extends MediaSummary {
   runtime: number | null;
   genres: { id: number; name: string }[];
   tagline: string | null;
+  /** US certification (G / PG / PG-13 / R / NC-17). Null if TMDB has none. */
+  certification: string | null;
+  /** YouTube video key for the best available trailer/teaser. */
+  trailerKey: string | null;
+  cast: CastMember[];
 }
 
 export interface TvDetails extends MediaSummary {
@@ -38,6 +53,10 @@ export interface TvDetails extends MediaSummary {
   genres: { id: number; name: string }[];
   tagline: string | null;
   seasons: SeasonSummary[];
+  /** US content rating (TV-Y / TV-Y7 / TV-G / TV-PG / TV-14 / TV-MA). */
+  certification: string | null;
+  trailerKey: string | null;
+  cast: CastMember[];
 }
 
 export interface SeasonSummary {

@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Fragment } from "react";
+import { CastScroller } from "@/components/CastScroller";
 import { ComingSoonBanner, isUpcoming } from "@/components/ComingSoonBanner";
+import { RatingBadge } from "@/components/RatingBadge";
 import { Row } from "@/components/Row";
 import { SaveButtons } from "@/components/SaveButtons";
 import { TrackContinueWatching } from "@/components/TrackContinueWatching";
+import { TrailerButton } from "@/components/TrailerButton";
 import { WatchPlayer } from "@/components/WatchPlayer";
 import { backdropUrl } from "@/lib/images";
 import { getMovieDetails, getSimilar } from "@/lib/tmdb";
@@ -69,12 +74,15 @@ export default async function MoviePage({ params }: Props) {
       <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 -mt-20 sm:-mt-32 relative">
         {upcoming ? (
           <ComingSoonBanner
+            type="movie"
             releaseDate={movie.releaseDate!}
             title={movie.title}
             posterPath={movie.posterPath}
             tagline={movie.tagline}
             overview={movie.overview}
             genres={movie.genres}
+            certification={movie.certification}
+            trailerKey={movie.trailerKey}
           />
         ) : (
           <WatchPlayer
@@ -95,19 +103,45 @@ export default async function MoviePage({ params }: Props) {
                 {movie.voteAverage > 0 && (
                   <span className="text-[var(--color-accent)]">★ {movie.voteAverage.toFixed(1)}</span>
                 )}
+                {movie.certification && (
+                  <RatingBadge code={movie.certification} type="movie" />
+                )}
                 {movie.genres.length > 0 && (
-                  <span>{movie.genres.map((g) => g.name).join(" · ")}</span>
+                  <span className="flex flex-wrap items-center gap-x-1.5">
+                    {movie.genres.map((g, i) => (
+                      <Fragment key={g.id}>
+                        {i > 0 && <span className="text-zinc-600">·</span>}
+                        <Link
+                          href={`/genre/${g.id}?type=movie`}
+                          className="hover:text-[var(--color-accent)] transition-colors"
+                        >
+                          {g.name}
+                        </Link>
+                      </Fragment>
+                    ))}
+                  </span>
                 )}
               </div>
               {movie.tagline && (
                 <p className="mt-4 italic text-[var(--color-text-muted)]">“{movie.tagline}”</p>
               )}
               <p className="mt-4 text-base leading-relaxed text-zinc-200">{movie.overview}</p>
+              {movie.trailerKey && (
+                <div className="mt-5">
+                  <TrailerButton youtubeKey={movie.trailerKey} title={movie.title} />
+                </div>
+              )}
             </div>
 
             <aside className="space-y-3">
               <SaveButtons media={movie} />
             </aside>
+          </div>
+        )}
+
+        {!upcoming && movie.cast.length > 0 && (
+          <div className="mt-10">
+            <CastScroller cast={movie.cast} />
           </div>
         )}
 
