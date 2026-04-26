@@ -41,7 +41,7 @@ export default async function MoviePage({ params }: Props) {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[var(--color-bg)]/60 to-[var(--color-bg)]" />
       </div>
 
-      <div className="max-w-screen-2xl mx-auto px-6 -mt-32 relative">
+      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 -mt-20 sm:-mt-32 relative">
         <WatchPlayer
           type="movie"
           tmdbId={movie.id}
@@ -74,7 +74,7 @@ export default async function MoviePage({ params }: Props) {
         </div>
 
         {similar.length > 0 && (
-          <div className="mt-12 -mx-6">
+          <div className="mt-12 -mx-4 sm:-mx-6">
             <Row title="More Like This" items={similar} />
           </div>
         )}

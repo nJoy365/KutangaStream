@@ -14,7 +14,7 @@ const TABS: { id: HomeFilter; label: string; href: string }[] = [
 
 export function HomeFilterTabs({ current }: Props) {
   return (
-    <div className="px-6 mb-6 flex gap-2">
+    <div className="px-4 sm:px-6 mb-6 flex gap-2">
       {TABS.map((t) => {
         const active = t.id === current;
         return (

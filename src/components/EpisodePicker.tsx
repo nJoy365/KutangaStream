@@ -64,7 +64,7 @@ export function EpisodePicker({
                   href={`/tv/${tvId}?season=${ep.seasonNumber}&episode=${ep.episodeNumber}`}
                   className="flex gap-3 flex-1 min-w-0"
                 >
-                  <div className="relative flex-shrink-0 w-32 aspect-video rounded overflow-hidden bg-black">
+                  <div className="relative flex-shrink-0 w-24 sm:w-32 aspect-video rounded overflow-hidden bg-black">
                     {still ? (
                       <Image
                         src={still}

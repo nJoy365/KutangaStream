@@ -21,7 +21,7 @@ export function Row({ title, items, emptyMessage }: Props) {
   if (items.length === 0) {
     if (!emptyMessage) return null;
     return (
-      <section className="px-6 mb-10">
+      <section className="px-4 sm:px-6 mb-10">
         <h2 className="text-xl font-bold mb-3 text-white">{title}</h2>
         <p className="text-sm text-[var(--color-text-muted)]">{emptyMessage}</p>
       </section>
@@ -30,7 +30,7 @@ export function Row({ title, items, emptyMessage }: Props) {
 
   return (
     <section className="mb-10 group/row">
-      <div className="flex items-center justify-between px-6 mb-3">
+      <div className="flex items-center justify-between px-4 sm:px-6 mb-3">
         <h2 className="text-xl font-bold text-white">{title}</h2>
         <div className="hidden md:flex gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
           <button
@@ -53,7 +53,7 @@ export function Row({ title, items, emptyMessage }: Props) {
       </div>
       <div
         ref={scrollerRef}
-        className="no-scrollbar flex gap-3 overflow-x-auto px-6 pb-2 scroll-smooth"
+        className="no-scrollbar flex gap-3 overflow-x-auto px-4 sm:px-6 pb-2 scroll-smooth"
       >
         {items.map((m, i) => (
           <PosterCard key={`${m.type}-${m.id}`} media={m} priority={i < 6} />

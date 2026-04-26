@@ -12,7 +12,7 @@ export default async function SearchPage({ searchParams }: Props) {
   const results = query ? await searchMulti(query).catch(() => []) : [];
 
   return (
-    <div className="max-w-screen-2xl mx-auto px-6 py-8">
+    <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-8">
       <h1 className="text-2xl font-bold text-white mb-1">
         {query ? `Results for “${query}”` : "Search"}
       </h1>

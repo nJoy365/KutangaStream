@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { Navbar } from "@/components/Navbar";
 
 const geistSans = Geist({
@@ -27,7 +28,8 @@ export default function RootLayout({
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
         <Navbar />
-        <main className="pt-16">{children}</main>
+        <main className="pt-16 pb-20 md:pb-0">{children}</main>
+        <MobileBottomNav />
       </body>
     </html>
   );
