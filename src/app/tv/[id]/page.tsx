@@ -1,8 +1,10 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { EpisodePicker } from "@/components/EpisodePicker";
 import { Row } from "@/components/Row";
 import { SaveButtons } from "@/components/SaveButtons";
+import { SmartTvDefaultRedirect } from "@/components/SmartTvDefaultRedirect";
 import { TrackContinueWatching } from "@/components/TrackContinueWatching";
 import { WatchPlayer } from "@/components/WatchPlayer";
 import { backdropUrl } from "@/lib/images";
@@ -13,6 +15,28 @@ interface Props {
   searchParams: Promise<{ season?: string; episode?: string }>;
 }
 
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id: idParam } = await params;
+  const id = parseInt(idParam, 10);
+  if (!Number.isFinite(id)) return {};
+  const tv = await getTvDetails(id).catch(() => null);
+  if (!tv) return {};
+  const backdrop = backdropUrl(tv.backdropPath, "w1280");
+  const titleWithYear = tv.releaseYear
+    ? `${tv.title} (${tv.releaseYear})`
+    : tv.title;
+  return {
+    title: titleWithYear,
+    description: tv.overview,
+    openGraph: {
+      title: titleWithYear,
+      description: tv.overview,
+      type: "video.tv_show",
+      images: backdrop ? [{ url: backdrop, alt: tv.title }] : [],
+    },
+  };
+}
+
 export default async function TvPage({ params, searchParams }: Props) {
   const { id: idParam } = await params;
   const sp = await searchParams;
@@ -21,6 +45,8 @@ export default async function TvPage({ params, searchParams }: Props) {
 
   const tv = await getTvDetails(id).catch(() => null);
   if (!tv) notFound();
+
+  const hasExplicitParams = Boolean(sp.season && sp.episode);
 
   const seasonNum = (() => {
     const n = sp.season ? parseInt(sp.season, 10) : NaN;
@@ -121,12 +147,12 @@ export default async function TvPage({ params, searchParams }: Props) {
         )}
       </div>
 
+      <SmartTvDefaultRedirect tvId={tv.id} hasExplicitParams={hasExplicitParams} />
       <TrackContinueWatching
         media={tv}
-        genres={tv.genres.map((g) => g.name)}
         season={seasonNum}
         episode={episodeNum}
-        episodeName={currentEpisode?.name}
+        hasExplicitParams={hasExplicitParams}
       />
     </div>
   );

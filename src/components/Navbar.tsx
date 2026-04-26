@@ -25,6 +25,9 @@ export function Navbar() {
           <Link href="/history" className="hover:text-white transition-colors">
             History
           </Link>
+          <Link href="/settings" className="hover:text-white transition-colors">
+            Settings
+          </Link>
         </nav>
         <div className="ml-auto w-full max-w-md min-w-0">
           <Suspense fallback={<div className="h-9" />}>

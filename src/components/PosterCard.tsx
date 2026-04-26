@@ -2,25 +2,17 @@ import Image from "next/image";
 import Link from "next/link";
 import { posterUrl } from "@/lib/images";
 import type { MediaSummary } from "@/lib/types";
+import { WatchProgress } from "./WatchProgress";
 
 interface Props {
   media: MediaSummary;
-  subtitle?: string;
   priority?: boolean;
 }
 
-export function PosterCard({ media, subtitle, priority }: Props) {
+export function PosterCard({ media, priority }: Props) {
   const href = `/${media.type}/${media.id}`;
   const img = posterUrl(media.posterPath, "w342");
-  const subText =
-    subtitle ??
-    [
-      media.releaseYear,
-      media.runtime ? `${media.runtime}m` : null,
-      media.episodeCount ? `${media.episodeCount} eps` : null,
-    ]
-      .filter(Boolean)
-      .join(" • ");
+  const subText = media.releaseYear ?? "";
 
   return (
     <Link
@@ -50,6 +42,7 @@ export function PosterCard({ media, subtitle, priority }: Props) {
         <div className="absolute top-2 left-2 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded bg-[var(--color-accent)]/90 text-white">
           {media.type === "movie" ? "Movie" : "TV"}
         </div>
+        {media.type === "tv" && <WatchProgress tvId={media.id} />}
       </div>
       <div className="mt-2 px-1">
         <h3 className="text-sm font-medium text-white line-clamp-1 group-hover:text-[var(--color-accent)] transition-colors">

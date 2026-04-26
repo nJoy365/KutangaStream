@@ -1,34 +1,49 @@
-// localStorage schema + safe helpers. All client-side; SSR returns empty defaults.
+// localStorage schema. The v2 entries store ONLY user actions — type, id,
+// dates, season/episode for TV. Display metadata (titles, posters, genres,
+// etc.) is fetched on demand from /api/media-batch and cached in sessionStorage.
 
-import type { MediaSummary, MediaType } from "./types";
+import type { MediaType } from "./types";
 
 export const STORAGE_KEYS = {
+  // v2: minimal refs only
+  watchlist: "ms.watchlist.v2",
+  favorites: "ms.favorites.v2",
+  continueWatching: "ms.continueWatching.v2",
+  watchHistory: "ms.watchHistory.v2",
+  // already minimal — unchanged
+  watchedEpisodes: "ms.watchedEpisodes.v1",
+  settings: "ms.settings.v1",
+  embedSource: "ms.embedSource.v1",
+} as const;
+
+// Legacy v1 keys — only read once during migration, then deleted.
+export const LEGACY_KEYS = {
   watchlist: "ms.watchlist.v1",
   favorites: "ms.favorites.v1",
   continueWatching: "ms.continueWatching.v1",
-  recentlyViewed: "ms.recentlyViewed.v1",
-  watchedEpisodes: "ms.watchedEpisodes.v1",
   watchHistory: "ms.watchHistory.v1",
 } as const;
 
-export interface SavedItem extends MediaSummary {
+export interface MinimalRef {
+  type: MediaType;
+  id: number;
+}
+
+export interface SavedRef extends MinimalRef {
   savedAt: number;
 }
 
-export interface ContinueWatchingItem extends MediaSummary {
+export interface ContinueWatchingRef extends MinimalRef {
   updatedAt: number;
-  // For TV shows: where they left off
   lastSeason?: number;
   lastEpisode?: number;
 }
 
-export interface WatchHistoryItem extends MediaSummary {
+export interface WatchHistoryRef extends MinimalRef {
   watchedAt: number;
-  genres: string[];
   // For TV episodes
   season?: number;
   episode?: number;
-  episodeName?: string;
 }
 
 export type WatchedEpisodeKey = `${number}-${number}-${number}`; // tvId-season-episode
@@ -39,26 +54,6 @@ export function watchedKey(
   episode: number,
 ): WatchedEpisodeKey {
   return `${tvId}-${season}-${episode}`;
-}
-
-export function readJSON<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (raw === null) return fallback;
-    return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-export function writeJSON<T>(key: string, value: T): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // quota exceeded or storage disabled — silently ignore
-  }
 }
 
 // Compound key for movie/tv item identity in saved lists.

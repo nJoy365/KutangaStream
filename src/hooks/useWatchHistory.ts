@@ -1,6 +1,10 @@
 "use client";
 import { useCallback } from "react";
-import { STORAGE_KEYS, type WatchHistoryItem } from "@/lib/storage";
+import {
+  type MinimalRef,
+  STORAGE_KEYS,
+  type WatchHistoryRef,
+} from "@/lib/storage";
 import {
   useLocalStorageJSON,
   writeLocalStorageJSON,
@@ -8,16 +12,22 @@ import {
 
 const MAX_ITEMS = 500;
 const DEDUPE_WINDOW_MS = 60_000; // ignore re-mounts of the same page within 1 min
-const EMPTY: WatchHistoryItem[] = [];
+const EMPTY: WatchHistoryRef[] = [];
+
+interface AddInput extends MinimalRef {
+  watchedAt?: number;
+  season?: number;
+  episode?: number;
+}
 
 export function useWatchHistory() {
-  const { value: items, hydrated } = useLocalStorageJSON<WatchHistoryItem[]>(
+  const { value: items, hydrated } = useLocalStorageJSON<WatchHistoryRef[]>(
     STORAGE_KEYS.watchHistory,
     EMPTY,
   );
 
   const add = useCallback(
-    (entry: Omit<WatchHistoryItem, "watchedAt"> & { watchedAt?: number }) => {
+    (entry: AddInput) => {
       const now = entry.watchedAt ?? Date.now();
       const last = items[0];
       if (
@@ -28,9 +38,15 @@ export function useWatchHistory() {
         last.episode === entry.episode &&
         now - last.watchedAt < DEDUPE_WINDOW_MS
       ) {
-        return; // refresh / re-mount, don't double-log
+        return;
       }
-      const next: WatchHistoryItem = { ...entry, watchedAt: now };
+      const next: WatchHistoryRef = {
+        type: entry.type,
+        id: entry.id,
+        watchedAt: now,
+        ...(entry.season ? { season: entry.season } : {}),
+        ...(entry.episode ? { episode: entry.episode } : {}),
+      };
       writeLocalStorageJSON(
         STORAGE_KEYS.watchHistory,
         [next, ...items].slice(0, MAX_ITEMS),

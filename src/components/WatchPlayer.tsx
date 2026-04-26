@@ -1,5 +1,6 @@
 "use client";
 import { useEmbedSource } from "@/hooks/useEmbedSource";
+import { useSettings } from "@/hooks/useSettings";
 import { EMBED_SOURCES, getSource } from "@/lib/embedSources";
 import { Player } from "./Player";
 
@@ -23,13 +24,17 @@ type Props = MovieProps | TvProps;
 
 export function WatchPlayer(props: Props) {
   const { sourceId, setSourceId } = useEmbedSource();
+  const { settings } = useSettings();
   const source = getSource(sourceId);
 
   const ref = { tmdb: props.tmdbId, imdb: props.imdbId };
+  const opts = settings.subtitleLanguage
+    ? { dsLang: settings.subtitleLanguage }
+    : undefined;
   const src =
     props.type === "movie"
-      ? source.buildMovieUrl(ref)
-      : source.buildTvUrl(ref, props.season, props.episode);
+      ? source.buildMovieUrl(ref, opts)
+      : source.buildTvUrl(ref, props.season, props.episode, opts);
 
   return (
     <div>

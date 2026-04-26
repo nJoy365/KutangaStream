@@ -6,8 +6,10 @@ interface Props {
   current: HomeFilter;
 }
 
+// "All" passes ?type=all explicitly so it overrides any saved default in the
+// cookie — clicking it must always show everything regardless of preference.
 const TABS: { id: HomeFilter; label: string; href: string }[] = [
-  { id: "all", label: "All", href: "/" },
+  { id: "all", label: "All", href: "/?type=all" },
   { id: "movie", label: "Movies", href: "/?type=movie" },
   { id: "tv", label: "TV Shows", href: "/?type=tv" },
 ];

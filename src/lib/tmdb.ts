@@ -245,17 +245,3 @@ export async function searchMulti(query: string): Promise<MediaSummary[]> {
     .map((r) => mapToSummary(r));
 }
 
-export async function findByImdb(
-  imdbId: string,
-): Promise<{ movie?: MediaSummary; tv?: MediaSummary }> {
-  const data = await tmdbFetch<{
-    movie_results: RawMedia[];
-    tv_results: RawMedia[];
-  }>(`/find/${imdbId}`, { external_source: "imdb_id" });
-  return {
-    movie: data.movie_results[0]
-      ? mapToSummary(data.movie_results[0], "movie")
-      : undefined,
-    tv: data.tv_results[0] ? mapToSummary(data.tv_results[0], "tv") : undefined,
-  };
-}

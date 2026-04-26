@@ -1,7 +1,10 @@
 "use client";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { HistoryListItem } from "@/components/HistoryListItem";
+import { useMediaBatch } from "@/hooks/useMediaBatch";
 import { useWatchHistory } from "@/hooks/useWatchHistory";
+import { itemKey } from "@/lib/storage";
 
 type TypeFilter = "all" | "movie" | "tv";
 
@@ -23,6 +26,7 @@ function endOfDay(dateStr: string): number | null {
 
 export default function HistoryPage() {
   const { items, removeAt, clear, hydrated } = useWatchHistory();
+  const { data: mediaMap } = useMediaBatch(items);
 
   const [titleQuery, setTitleQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
@@ -30,29 +34,44 @@ export default function HistoryPage() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
-  // Derive the genre options from the loaded history so we don't show
-  // genres the user has never watched.
+  // Derive genre options from the FETCHED metadata, deduped + sorted.
   const allGenres = useMemo(() => {
     const set = new Set<string>();
-    for (const it of items) for (const g of it.genres) set.add(g);
+    for (const m of mediaMap.values()) {
+      for (const g of m.genres) set.add(g);
+    }
     return Array.from(set).sort();
-  }, [items]);
+  }, [mediaMap]);
 
   const filtered = useMemo(() => {
     const q = titleQuery.trim().toLowerCase();
     const from = startOfDay(fromDate);
     const to = endOfDay(toDate);
     return items
-      .map((item, originalIndex) => ({ item, originalIndex }))
-      .filter(({ item }) => {
-        if (typeFilter !== "all" && item.type !== typeFilter) return false;
-        if (q && !item.title.toLowerCase().includes(q)) return false;
-        if (genreFilter && !item.genres.includes(genreFilter)) return false;
-        if (from && item.watchedAt < from) return false;
-        if (to && item.watchedAt > to) return false;
+      .map((entry, originalIndex) => ({
+        entry,
+        originalIndex,
+        media: mediaMap.get(itemKey(entry.type, entry.id)),
+      }))
+      .filter(({ entry, media }) => {
+        if (typeFilter !== "all" && entry.type !== typeFilter) return false;
+        if (from && entry.watchedAt < from) return false;
+        if (to && entry.watchedAt > to) return false;
+        // Title and genre filters require fetched metadata. If metadata isn't
+        // loaded yet for this entry, exclude it from filtered results when the
+        // user has set those filters — but include it otherwise so it's still
+        // visible while loading.
+        if (q) {
+          if (!media) return false;
+          if (!media.title.toLowerCase().includes(q)) return false;
+        }
+        if (genreFilter) {
+          if (!media) return false;
+          if (!media.genres.includes(genreFilter)) return false;
+        }
         return true;
       });
-  }, [items, titleQuery, typeFilter, genreFilter, fromDate, toDate]);
+  }, [items, mediaMap, titleQuery, typeFilter, genreFilter, fromDate, toDate]);
 
   const hasFilters =
     Boolean(titleQuery) ||
@@ -160,6 +179,20 @@ export default function HistoryPage() {
         </div>
       )}
 
+      {hydrated && items.length === 0 && (
+        <div className="text-center py-16">
+          <p className="text-[var(--color-text-muted)] mb-4">
+            Nothing here yet — open a movie or episode and it&apos;ll show up.
+          </p>
+          <Link
+            href="/"
+            className="inline-flex items-center px-5 h-10 rounded-md bg-[var(--color-accent)] text-white text-sm font-medium hover:bg-[var(--color-accent-hover)] transition-colors"
+          >
+            Browse now →
+          </Link>
+        </div>
+      )}
+
       {hydrated && filtered.length === 0 && items.length > 0 && (
         <p className="text-[var(--color-text-muted)] mt-6">
           No entries match the current filters.
@@ -168,10 +201,11 @@ export default function HistoryPage() {
 
       {filtered.length > 0 && (
         <ul className="space-y-2">
-          {filtered.map(({ item, originalIndex }) => (
+          {filtered.map(({ entry, originalIndex, media }) => (
             <HistoryListItem
-              key={`${originalIndex}-${item.watchedAt}`}
-              item={item}
+              key={`${originalIndex}-${entry.watchedAt}`}
+              entry={entry}
+              media={media}
               onRemove={() => removeAt(originalIndex)}
             />
           ))}

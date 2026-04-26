@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Migrate } from "@/components/Migrate";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { Navbar } from "@/components/Navbar";
+import { ToastProvider } from "@/components/Toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "KutangaStream",
+  title: { template: "%s · KutangaStream", default: "KutangaStream" },
   description: "Watch movies and TV shows",
 };
 
@@ -27,9 +29,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
-        <Navbar />
-        <main className="pt-16 pb-20 md:pb-0">{children}</main>
-        <MobileBottomNav />
+        <ToastProvider>
+          <Migrate />
+          <Navbar />
+          <main className="pt-16 pb-20 md:pb-0">{children}</main>
+          <MobileBottomNav />
+        </ToastProvider>
       </body>
     </html>
   );

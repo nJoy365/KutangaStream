@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { Suspense } from "react";
 import { ContinueWatchingRow } from "@/components/ContinueWatchingRow";
 import { HomeFilterTabs, type HomeFilter } from "@/components/HomeFilterTabs";
@@ -21,13 +22,23 @@ interface Props {
 }
 
 function parseFilter(raw?: string): HomeFilter {
-  if (raw === "movie" || raw === "tv") return raw;
+  if (raw === "all" || raw === "movie" || raw === "tv") return raw;
   return "all";
 }
 
 export default async function Home({ searchParams }: Props) {
   const { type } = await searchParams;
-  const filter = parseFilter(type);
+
+  // If the user hasn't picked a filter via URL, honor the cookie set by the
+  // settings page. URL takes precedence (so clicking "All" with type=all
+  // overrides the cookie default).
+  let filter: HomeFilter;
+  if (type) {
+    filter = parseFilter(type);
+  } else {
+    const cookieStore = await cookies();
+    filter = parseFilter(cookieStore.get("ms_home_filter")?.value);
+  }
 
   // Fan out only the rows the active filter needs.
   let rows: { title: string; itemsPromise: Promise<unknown[]> }[] = [];

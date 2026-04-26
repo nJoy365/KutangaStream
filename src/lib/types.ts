@@ -9,8 +9,14 @@ export interface MediaSummary {
   releaseYear: string | null;
   voteAverage: number;
   overview: string;
-  runtime?: number | null;
-  episodeCount?: number | null;
+}
+
+// Returned by /api/media-batch — adds genre names for places that filter by
+// genre (history page). Kept separate so MediaSummary itself stays minimal
+// and doesn't conflict with the {id,name}[] shape used inside MovieDetails
+// /TvDetails.
+export interface MediaSummaryWithGenres extends MediaSummary {
+  genres: string[];
 }
 
 export interface MovieDetails extends MediaSummary {

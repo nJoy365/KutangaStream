@@ -1,16 +1,16 @@
 "use client";
 import { useCallback } from "react";
-import { itemKey, type SavedItem } from "@/lib/storage";
-import type { MediaSummary, MediaType } from "@/lib/types";
+import { itemKey, type MinimalRef, type SavedRef } from "@/lib/storage";
+import type { MediaType } from "@/lib/types";
 import {
   useLocalStorageJSON,
   writeLocalStorageJSON,
 } from "./useLocalStorageJSON";
 
-const EMPTY: SavedItem[] = [];
+const EMPTY: SavedRef[] = [];
 
 export function useStoredList(storageKey: string) {
-  const { value: items, hydrated } = useLocalStorageJSON<SavedItem[]>(
+  const { value: items, hydrated } = useLocalStorageJSON<SavedRef[]>(
     storageKey,
     EMPTY,
   );
@@ -22,12 +22,12 @@ export function useStoredList(storageKey: string) {
   );
 
   const add = useCallback(
-    (media: MediaSummary) => {
-      if (items.some((it) => itemKey(it.type, it.id) === itemKey(media.type, media.id))) {
+    (ref: MinimalRef) => {
+      if (items.some((it) => itemKey(it.type, it.id) === itemKey(ref.type, ref.id))) {
         return;
       }
       writeLocalStorageJSON(storageKey, [
-        { ...media, savedAt: Date.now() },
+        { type: ref.type, id: ref.id, savedAt: Date.now() },
         ...items,
       ]);
     },
@@ -45,9 +45,9 @@ export function useStoredList(storageKey: string) {
   );
 
   const toggle = useCallback(
-    (media: MediaSummary) => {
-      if (has(media.type, media.id)) remove(media.type, media.id);
-      else add(media);
+    (ref: MinimalRef) => {
+      if (has(ref.type, ref.id)) remove(ref.type, ref.id);
+      else add(ref);
     },
     [add, remove, has],
   );

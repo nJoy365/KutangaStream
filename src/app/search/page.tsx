@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import { PosterCard } from "@/components/PosterCard";
 import { searchMulti } from "@/lib/tmdb";
 
 interface Props {
   searchParams: Promise<{ q?: string }>;
+}
+
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const { q } = await searchParams;
+  return { title: q ? `Search: ${q}` : "Search" };
 }
 
 export default async function SearchPage({ searchParams }: Props) {

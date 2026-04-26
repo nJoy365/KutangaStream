@@ -1,32 +1,34 @@
 "use client";
 import { useCallback } from "react";
 import {
-  type ContinueWatchingItem,
+  type ContinueWatchingRef,
   itemKey,
+  type MinimalRef,
   STORAGE_KEYS,
 } from "@/lib/storage";
-import type { MediaSummary } from "@/lib/types";
+import type { MediaType } from "@/lib/types";
 import {
   useLocalStorageJSON,
   writeLocalStorageJSON,
 } from "./useLocalStorageJSON";
 
 const MAX_ITEMS = 20;
-const EMPTY: ContinueWatchingItem[] = [];
+const EMPTY: ContinueWatchingRef[] = [];
 
 export function useContinueWatching() {
-  const { value: items, hydrated } = useLocalStorageJSON<ContinueWatchingItem[]>(
+  const { value: items, hydrated } = useLocalStorageJSON<ContinueWatchingRef[]>(
     STORAGE_KEYS.continueWatching,
     EMPTY,
   );
 
   const upsert = useCallback(
-    (media: MediaSummary, progress?: { season: number; episode: number }) => {
+    (ref: MinimalRef, progress?: { season: number; episode: number }) => {
       const filtered = items.filter(
-        (it) => itemKey(it.type, it.id) !== itemKey(media.type, media.id),
+        (it) => itemKey(it.type, it.id) !== itemKey(ref.type, ref.id),
       );
-      const entry: ContinueWatchingItem = {
-        ...media,
+      const entry: ContinueWatchingRef = {
+        type: ref.type,
+        id: ref.id,
         updatedAt: Date.now(),
         ...(progress
           ? { lastSeason: progress.season, lastEpisode: progress.episode }
@@ -41,7 +43,7 @@ export function useContinueWatching() {
   );
 
   const remove = useCallback(
-    (type: MediaSummary["type"], id: number) => {
+    (type: MediaType, id: number) => {
       writeLocalStorageJSON(
         STORAGE_KEYS.continueWatching,
         items.filter((it) => itemKey(it.type, it.id) !== itemKey(type, id)),

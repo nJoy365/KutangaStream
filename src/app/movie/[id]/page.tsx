@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Row } from "@/components/Row";
@@ -9,6 +10,28 @@ import { getMovieDetails, getSimilar } from "@/lib/tmdb";
 
 interface Props {
   params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id: idParam } = await params;
+  const id = parseInt(idParam, 10);
+  if (!Number.isFinite(id)) return {};
+  const movie = await getMovieDetails(id).catch(() => null);
+  if (!movie) return {};
+  const backdrop = backdropUrl(movie.backdropPath, "w1280");
+  const titleWithYear = movie.releaseYear
+    ? `${movie.title} (${movie.releaseYear})`
+    : movie.title;
+  return {
+    title: titleWithYear,
+    description: movie.overview,
+    openGraph: {
+      title: titleWithYear,
+      description: movie.overview,
+      type: "video.movie",
+      images: backdrop ? [{ url: backdrop, alt: movie.title }] : [],
+    },
+  };
 }
 
 export default async function MoviePage({ params }: Props) {
@@ -80,10 +103,7 @@ export default async function MoviePage({ params }: Props) {
         )}
       </div>
 
-      <TrackContinueWatching
-        media={movie}
-        genres={movie.genres.map((g) => g.name)}
-      />
+      <TrackContinueWatching media={movie} />
     </div>
   );
 }

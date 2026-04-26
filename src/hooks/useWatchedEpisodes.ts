@@ -47,5 +47,18 @@ export function useWatchedEpisodes(tvId: number) {
     [set, tvId],
   );
 
-  return { isWatched, toggle, markWatched, hydrated };
+  const setSeasonWatched = useCallback(
+    (season: number, episodeNumbers: number[], watched: boolean) => {
+      const next = new Set(set);
+      for (const ep of episodeNumbers) {
+        const k = watchedKey(tvId, season, ep);
+        if (watched) next.add(k);
+        else next.delete(k);
+      }
+      writeLocalStorageJSON(STORAGE_KEYS.watchedEpisodes, Array.from(next));
+    },
+    [set, tvId],
+  );
+
+  return { isWatched, toggle, markWatched, setSeasonWatched, hydrated };
 }
