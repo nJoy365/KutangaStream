@@ -10,7 +10,10 @@ export function Player({ src, title }: Props) {
         src={src}
         title={title ?? "Player"}
         className="absolute inset-0 w-full h-full"
-        allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+        // Permissions need wildcards because vsembed loads the actual video
+        // from third-party origins inside its own iframe — without `*`, the
+        // fullscreen request from the inner player gets blocked by us.
+        allow="autoplay *; fullscreen *; picture-in-picture *; encrypted-media *"
         allowFullScreen
         referrerPolicy="origin"
       />
