@@ -14,6 +14,7 @@ import { TrackContinueWatching } from "@/components/TrackContinueWatching";
 import { TrailerButton } from "@/components/TrailerButton";
 import { WatchPlayer } from "@/components/WatchPlayer";
 import { backdropUrl } from "@/lib/images";
+import { loadEmbedSources } from "@/lib/embedSourcesServer";
 import { getSeasonEpisodes, getSimilar, getTvDetails } from "@/lib/tmdb";
 
 interface Props {
@@ -66,9 +67,10 @@ export default async function TvPage({ params, searchParams }: Props) {
   })();
 
   // For unreleased shows we don't fetch episodes (none exist yet).
-  const [episodes, similar] = await Promise.all([
+  const [episodes, similar, embedSources] = await Promise.all([
     upcoming ? Promise.resolve([]) : getSeasonEpisodes(id, seasonNum).catch(() => []),
     getSimilar("tv", id).catch(() => []),
+    Promise.resolve(loadEmbedSources()),
   ]);
 
   const currentEpisode = episodes.find((e) => e.episodeNumber === episodeNum);
@@ -111,6 +113,7 @@ export default async function TvPage({ params, searchParams }: Props) {
             season={seasonNum}
             episode={episodeNum}
             title={`${tv.title} S${seasonNum}E${episodeNum}`}
+            sources={embedSources}
           />
         )}
 

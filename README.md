@@ -50,14 +50,25 @@ Self-hosted movie + TV streaming UI built on Next.js. Catalog metadata comes fro
 2. Go to **Settings → API**, request a **Developer** key (instant approval).
 3. Copy either the **API Key (v3)** or the **API Read Access Token (v4)** — the app auto-detects which one you provided.
 
-### 2. Configure the env
+### 2. Configure embed sources
+
+Copy the example and fill in your own embed provider URLs:
+
+```bash
+cp embed-sources.example.yaml embed-sources.yaml
+# then edit embed-sources.yaml with your provider URLs
+```
+
+The file is gitignored — URL templates support `{tmdb}`, `{imdb}`, `{season}`, and `{episode}` placeholders.
+
+### 4. Configure the env
 
 ```bash
 cp .env.local.example .env.local
 # then edit .env.local and paste your key
 ```
 
-### 3. Run it
+### 5. Run it
 
 #### Local development (hot reload)
 

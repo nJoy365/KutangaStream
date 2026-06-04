@@ -1,13 +1,14 @@
 "use client";
 import { useEmbedSource } from "@/hooks/useEmbedSource";
 import { useSettings } from "@/hooks/useSettings";
-import { EMBED_SOURCES, getSource } from "@/lib/embedSources";
+import { EmbedSource, pickSource } from "@/lib/embedSources";
 import { Player } from "./Player";
 
 interface BaseProps {
   tmdbId: number;
   imdbId?: string | null;
   title?: string;
+  sources: EmbedSource[];
 }
 
 interface MovieProps extends BaseProps {
@@ -25,7 +26,7 @@ type Props = MovieProps | TvProps;
 export function WatchPlayer(props: Props) {
   const { sourceId, setSourceId } = useEmbedSource();
   const { settings } = useSettings();
-  const source = getSource(sourceId);
+  const source = pickSource(props.sources, sourceId);
 
   const ref = { tmdb: props.tmdbId, imdb: props.imdbId };
   const opts = settings.subtitleLanguage
@@ -50,7 +51,7 @@ export function WatchPlayer(props: Props) {
           </span>
         </div>
         <div className="flex flex-wrap gap-2">
-          {EMBED_SOURCES.map((s) => {
+          {props.sources.map((s) => {
             const active = s.id === source.id;
             return (
               <button

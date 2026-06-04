@@ -1,0 +1,26 @@
+# Rename this file to embed-sources.yaml and fill in your own embed providers.
+# The app reads embed-sources.yaml at runtime; if it doesn't exist it falls back
+# to this example file (which has no real URLs, so playback won't work until you
+# create your own copy).
+#
+# Placeholders available in URL templates:
+#   {tmdb}    — TMDB numeric ID
+#   {imdb}    — IMDB ID (e.g. tt1234567), if available for the title
+#   {season}  — season number (TV only)
+#   {episode} — episode number (TV only)
+#
+# The first source in the list is the default.
+# Subtitle language (from Settings) is appended automatically as ?ds_lang=...
+
+sources:
+  - id: source1
+    name: Source 1
+    description: "My primary embed provider"
+    movieUrl: "https://your-provider.example/embed/movie/{tmdb}"
+    tvUrl: "https://your-provider.example/embed/tv/{tmdb}/{season}/{episode}"
+
+  - id: source2
+    name: Source 2
+    description: "Fallback provider"
+    movieUrl: "https://your-other-provider.example/movie/{tmdb}"
+    tvUrl: "https://your-other-provider.example/tv/{tmdb}/{season}/{episode}"
