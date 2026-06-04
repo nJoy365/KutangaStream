@@ -102,8 +102,8 @@ The first source in the list is the default; use the ↑/↓ buttons to reorder.
 
 For example, to add VidSrc:
 
-- **Movie URL:** `https://vidsrc.xyz/embed/movie?tmdb={tmdb}`
-- **TV URL:** `https://vidsrc.xyz/embed/tv?tmdb={tmdb}&season={season}&episode={episode}`
+- **Movie URL:** `https://vidsrc.to/embed/movie?tmdb={tmdb}`
+- **TV URL:** `https://vidsrc.to/embed/tv?tmdb={tmdb}&season={season}&episode={episode}`
 
 ### YAML seed (optional)
 
