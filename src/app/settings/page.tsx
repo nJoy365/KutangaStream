@@ -1,5 +1,6 @@
 "use client";
 import { useRef, useState } from "react";
+import { EmbedSourcesSection } from "@/components/EmbedSourcesSection";
 import { runMigration } from "@/components/Migrate";
 import { useToast } from "@/components/Toast";
 import { useSettings, type Settings } from "@/hooks/useSettings";
@@ -47,6 +48,7 @@ interface BackupPayload {
   watchedEpisodes?: unknown;
   settings?: unknown;
   embedSource?: unknown;
+  embedSources?: unknown;
 }
 
 function readJSON(key: string): unknown {
@@ -67,6 +69,7 @@ function collectPayload(): BackupPayload {
     watchedEpisodes: readJSON(STORAGE_KEYS.watchedEpisodes),
     settings: readJSON(STORAGE_KEYS.settings),
     embedSource: readJSON(STORAGE_KEYS.embedSource),
+    embedSources: readJSON(STORAGE_KEYS.embedSources),
   };
 }
 
@@ -95,6 +98,7 @@ function applyV2Payload(payload: BackupPayload): number {
     [STORAGE_KEYS.watchedEpisodes, payload.watchedEpisodes],
     [STORAGE_KEYS.settings, payload.settings],
     [STORAGE_KEYS.embedSource, payload.embedSource],
+    [STORAGE_KEYS.embedSources, payload.embedSources],
   ];
   let count = 0;
   for (const [k, v] of writes) {
@@ -290,6 +294,8 @@ export default function SettingsPage() {
           </select>
         </Field>
       </section>
+
+      <EmbedSourcesSection />
 
       <section className="space-y-4">
         <h2 className="text-lg font-semibold text-white">Browsing</h2>

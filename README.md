@@ -1,6 +1,6 @@
 # KutangaStream
 
-Self-hosted movie + TV streaming UI built on Next.js. Catalog metadata comes from [TMDB](https://www.themoviedb.org/); playback comes from a swappable list of third-party embed providers (vsembed.ru by default).
+Self-hosted movie + TV streaming UI built on Next.js. Catalog metadata comes from [TMDB](https://www.themoviedb.org/); playback comes from a swappable list of third-party embed providers that you configure yourself (see [Embed sources](#embed-sources)).
 
 ![KutangaStream home page](docs/home.png)
 
@@ -18,7 +18,7 @@ Self-hosted movie + TV streaming UI built on Next.js. Catalog metadata comes fro
 - TV watch page: same, plus a season/episode picker that auto-scrolls to the current episode
 - **Smart "resume last episode"**: opening `/tv/[id]` without `?season=&episode=` jumps to wherever you left off
 - **Soft client-side navigation** when changing episodes (no full page reload, no scroll jump)
-- **7 swappable embed sources** — toggle between VSEmbed, VidSrc, VidSrc.to, Embed.su, AutoEmbed, 2Embed, MoviesAPI on the watch page; preference persists per device
+- **User-configurable embed sources** — add, edit, remove, and reorder your own providers in **Settings → Embed sources**; switch between them on the watch page; preference persists per device
 - **Subtitle language preference** in Settings, passed to embed providers via `ds_lang`
 - **Trailers** — YouTube modal on movie/TV detail pages and Coming Soon banners; picks the best official trailer/teaser available from TMDB
 - **Cast & crew scroller** — horizontal card row with hover-reveal left/right scroll arrows; shows photo, name, and character
@@ -50,25 +50,14 @@ Self-hosted movie + TV streaming UI built on Next.js. Catalog metadata comes fro
 2. Go to **Settings → API**, request a **Developer** key (instant approval).
 3. Copy either the **API Key (v3)** or the **API Read Access Token (v4)** — the app auto-detects which one you provided.
 
-### 2. Configure embed sources
-
-Copy the example and fill in your own embed provider URLs:
-
-```bash
-cp embed-sources.example.yaml embed-sources.yaml
-# then edit embed-sources.yaml with your provider URLs
-```
-
-The file is gitignored — URL templates support `{tmdb}`, `{imdb}`, `{season}`, and `{episode}` placeholders.
-
-### 4. Configure the env
+### 2. Configure the env
 
 ```bash
 cp .env.local.example .env.local
 # then edit .env.local and paste your key
 ```
 
-### 5. Run it
+### 3. Run it
 
 #### Local development (hot reload)
 
@@ -88,6 +77,44 @@ docker compose up --build -d
 The compose file reads `.env.local` directly, so the same env file works for `npm run dev` and the container.
 
 To stop: `docker compose down`. To rebuild after code changes: `docker compose up --build -d`.
+
+## Embed sources
+
+The app ships with **no** built-in stream providers — you bring your own. There are two ways to configure them:
+
+### In-app (recommended)
+
+Go to **Settings → Embed sources** and click **+ Add source**. Each source needs:
+
+- **Name** — shown on the source-picker pills on watch pages
+- **Movie URL** and **TV URL** — templates with placeholders
+
+URL templates support these placeholders, substituted at watch time:
+
+| Placeholder | Meaning |
+|-------------|---------|
+| `{tmdb}`    | TMDB numeric id |
+| `{imdb}`    | IMDB id (e.g. `tt1234567`), when available |
+| `{season}`  | season number (TV only) |
+| `{episode}` | episode number (TV only) |
+
+The first source in the list is the default; use the ↑/↓ buttons to reorder. Your list is stored locally in the browser (and included in **Backup & restore**). Subtitle language from Settings is appended automatically as `?ds_lang=...`.
+
+For example, to add VidSrc:
+
+- **Movie URL:** `https://vidsrc.xyz/embed/movie?tmdb={tmdb}`
+- **TV URL:** `https://vidsrc.xyz/embed/tv?tmdb={tmdb}&season={season}&episode={episode}`
+
+### YAML seed (optional)
+
+On first run, if you haven't added any sources in the UI, the app seeds your list from `embed-sources.yaml` at the project root. Copy the example to pre-populate the list:
+
+```bash
+cp embed-sources.example.yaml embed-sources.yaml
+# then edit embed-sources.yaml with your provider URLs
+```
+
+`embed-sources.yaml` is gitignored. It's only read to seed an empty list — once you have sources in the UI, the in-app list is authoritative.
 
 ## Storage architecture
 
@@ -152,7 +179,8 @@ src/
   hooks/                            # localStorage hooks + useMediaBatch + useSettings
   lib/
     tmdb.ts                         # TMDB client (server-only)
-    embedSources.ts                 # Third-party embed provider registry
+    embedSources.ts                 # Embed URL template builder + helpers
+    embedSourcesServer.ts           # Reads embed-sources.yaml (server-only)
     backup.ts                       # gzip+base64 encode/decode
     storage.ts                      # Storage keys + minimal types
     images.ts                       # TMDB image URL builders (poster, backdrop, profile)

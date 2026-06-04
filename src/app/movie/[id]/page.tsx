@@ -12,7 +12,6 @@ import { TrackContinueWatching } from "@/components/TrackContinueWatching";
 import { TrailerButton } from "@/components/TrailerButton";
 import { WatchPlayer } from "@/components/WatchPlayer";
 import { backdropUrl } from "@/lib/images";
-import { loadEmbedSources } from "@/lib/embedSourcesServer";
 import { getMovieDetails, getSimilar } from "@/lib/tmdb";
 
 interface Props {
@@ -46,10 +45,9 @@ export default async function MoviePage({ params }: Props) {
   const id = parseInt(idParam, 10);
   if (!Number.isFinite(id)) notFound();
 
-  const [movie, similar, embedSources] = await Promise.all([
+  const [movie, similar] = await Promise.all([
     getMovieDetails(id).catch(() => null),
     getSimilar("movie", id).catch(() => []),
-    Promise.resolve(loadEmbedSources()),
   ]);
   if (!movie) notFound();
 
@@ -92,7 +90,6 @@ export default async function MoviePage({ params }: Props) {
             tmdbId={movie.id}
             imdbId={movie.imdbId}
             title={movie.title}
-            sources={embedSources}
           />
         )}
 

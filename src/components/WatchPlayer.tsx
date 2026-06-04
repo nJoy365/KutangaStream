@@ -1,14 +1,14 @@
 "use client";
 import { useEmbedSource } from "@/hooks/useEmbedSource";
+import { useEmbedSources } from "@/hooks/useEmbedSources";
 import { useSettings } from "@/hooks/useSettings";
-import { EmbedSource, pickSource } from "@/lib/embedSources";
+import { buildEmbedSource, pickSource } from "@/lib/embedSources";
 import { Player } from "./Player";
 
 interface BaseProps {
   tmdbId: number;
   imdbId?: string | null;
   title?: string;
-  sources: EmbedSource[];
 }
 
 interface MovieProps extends BaseProps {
@@ -26,8 +26,31 @@ type Props = MovieProps | TvProps;
 export function WatchPlayer(props: Props) {
   const { sourceId, setSourceId } = useEmbedSource();
   const { settings } = useSettings();
-  const source = pickSource(props.sources, sourceId);
+  const { sources: configs, ready } = useEmbedSources();
 
+  if (!ready) {
+    return (
+      <div className="w-full aspect-video bg-[var(--color-surface)] rounded-lg animate-pulse" />
+    );
+  }
+
+  if (configs.length === 0) {
+    return (
+      <div className="w-full aspect-video bg-[var(--color-surface)] rounded-lg flex flex-col items-center justify-center gap-3 text-center px-6">
+        <p className="text-white font-medium">No embed sources configured</p>
+        <p className="text-sm text-[var(--color-text-muted)]">
+          Go to{" "}
+          <a href="/settings" className="text-[var(--color-accent)] hover:underline">
+            Settings → Embed sources
+          </a>{" "}
+          to add a provider.
+        </p>
+      </div>
+    );
+  }
+
+  const sources = configs.map(buildEmbedSource);
+  const source = pickSource(sources, sourceId);
   const ref = { tmdb: props.tmdbId, imdb: props.imdbId };
   const opts = settings.subtitleLanguage
     ? { dsLang: settings.subtitleLanguage }
@@ -51,7 +74,7 @@ export function WatchPlayer(props: Props) {
           </span>
         </div>
         <div className="flex flex-wrap gap-2">
-          {props.sources.map((s) => {
+          {sources.map((s) => {
             const active = s.id === source.id;
             return (
               <button

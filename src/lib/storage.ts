@@ -14,6 +14,7 @@ export const STORAGE_KEYS = {
   watchedEpisodes: "ms.watchedEpisodes.v1",
   settings: "ms.settings.v1",
   embedSource: "ms.embedSource.v1",
+  embedSources: "ms.embedSources.v1",
 } as const;
 
 // Legacy v1 keys — only read once during migration, then deleted.
