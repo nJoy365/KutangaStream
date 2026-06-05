@@ -100,10 +100,10 @@ URL templates support these placeholders, substituted at watch time:
 
 The first source in the list is the default; use the ↑/↓ buttons to reorder. Your list is stored locally in the browser (and included in **Backup & restore**). Subtitle language from Settings is appended automatically as `?ds_lang=...`.
 
-For example, to add VidSrc:
+For example, a path-style provider:
 
-- **Movie URL:** `https://vidsrc.to/embed/movie/{tmdb}`
-- **TV URL:** `https://vidsrc.to/embed/tv/{tmdb}/{season}/{episode}`
+- **Movie URL:** `https://your-provider.example/embed/movie/{tmdb}`
+- **TV URL:** `https://your-provider.example/embed/tv/{tmdb}/{season}/{episode}`
 
 ### YAML seed (optional)
 
