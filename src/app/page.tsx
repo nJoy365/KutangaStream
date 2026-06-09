@@ -39,7 +39,11 @@ export default async function Home({ searchParams }: Props) {
     filter = parseFilter(type);
   } else {
     const cookieStore = await cookies();
-    filter = parseFilter(cookieStore.get("ms_home_filter")?.value);
+    // Prefer the new `ks_` cookie; fall back to the legacy `ms_` one.
+    const homeFilter =
+      cookieStore.get("ks_home_filter")?.value ??
+      cookieStore.get("ms_home_filter")?.value;
+    filter = parseFilter(homeFilter);
   }
 
   // Fan out only the rows the active filter needs.

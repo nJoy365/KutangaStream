@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { itemKey, type MinimalRef } from "@/lib/storage";
 import type { MediaSummaryWithGenres } from "@/lib/types";
 
-const SESSION_PREFIX = "ms.cache.media.";
+const SESSION_PREFIX = "ks.cache.media.";
 
 // Module-level mirror of the sessionStorage cache. Avoids hitting JSON.parse
 // for every render and survives across hook instances within a tab.

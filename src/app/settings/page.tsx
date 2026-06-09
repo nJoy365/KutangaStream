@@ -9,7 +9,7 @@ import {
   decodeBackup,
   encodeBackup,
 } from "@/lib/backup";
-import { STORAGE_KEYS } from "@/lib/storage";
+import { STORAGE_KEYS, STORAGE_PREFIXES } from "@/lib/storage";
 
 // Curated set of common subtitle languages. Empty value = let the player
 // pick its own default. ISO 639-1 codes.
@@ -36,7 +36,11 @@ const LANGUAGES: { code: string; label: string }[] = [
   { code: "cs", label: "Czech" },
 ];
 
-const STORAGE_PREFIX = "ms.";
+// True for any of this app's localStorage keys, current (`ks.`) or legacy
+// (`ms.`), so backup-detection and clear-all still catch pre-rename data.
+function hasAppPrefix(key: string): boolean {
+  return STORAGE_PREFIXES.some((p) => key.startsWith(p));
+}
 
 // Inner payload shape (what gets gzipped into the envelope). All entries are
 // minimal refs only — display metadata is re-fetched on demand at render time.
@@ -76,7 +80,7 @@ function collectPayload(): BackupPayload {
 function hasExistingData(): boolean {
   for (let i = 0; i < window.localStorage.length; i++) {
     const k = window.localStorage.key(i);
-    if (k && k.startsWith(STORAGE_PREFIX)) return true;
+    if (k && hasAppPrefix(k)) return true;
   }
   return false;
 }
@@ -106,7 +110,7 @@ function applyV2Payload(payload: BackupPayload): number {
     window.localStorage.setItem(k, JSON.stringify(v));
     count++;
   }
-  window.dispatchEvent(new Event("ms-storage-change"));
+  window.dispatchEvent(new Event("ks-storage-change"));
   return count;
 }
 
@@ -115,13 +119,13 @@ function applyV2Payload(payload: BackupPayload): number {
 function applyV1Payload(data: Record<string, unknown>): number {
   let count = 0;
   for (const [k, v] of Object.entries(data)) {
-    if (!k.startsWith(STORAGE_PREFIX)) continue;
+    if (!hasAppPrefix(k)) continue;
     window.localStorage.setItem(k, JSON.stringify(v));
     count++;
   }
-  // Rip the v1 rich data down to the v2 minimal shape.
+  // Rip the v1 rich data down to the v2 minimal shape (also renames ms.→ks.).
   runMigration();
-  window.dispatchEvent(new Event("ms-storage-change"));
+  window.dispatchEvent(new Event("ks-storage-change"));
   return count;
 }
 
@@ -258,10 +262,10 @@ export default function SettingsPage() {
     const keys: string[] = [];
     for (let i = 0; i < window.localStorage.length; i++) {
       const k = window.localStorage.key(i);
-      if (k && k.startsWith(STORAGE_PREFIX)) keys.push(k);
+      if (k && hasAppPrefix(k)) keys.push(k);
     }
     for (const k of keys) window.localStorage.removeItem(k);
-    window.dispatchEvent(new Event("ms-storage-change"));
+    window.dispatchEvent(new Event("ks-storage-change"));
     show("All data cleared", "success");
   }
 
@@ -309,8 +313,10 @@ export default function SettingsPage() {
               const v = e.target.value as Settings["defaultHomeFilter"];
               update({ defaultHomeFilter: v });
               // Mirror to a cookie so the (server-rendered) home page can
-              // honor the preference on the very first request.
-              document.cookie = `ms_home_filter=${v}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
+              // honor the preference on the very first request. Also clear the
+              // old `ms_` cookie so it can't shadow the new one server-side.
+              document.cookie = `ks_home_filter=${v}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`;
+              document.cookie = `ms_home_filter=; path=/; max-age=0; SameSite=Lax`;
             }}
             disabled={!hydrated}
             className="h-9 px-3 rounded-md bg-[var(--color-surface)] border border-[var(--color-border)] text-sm text-white focus:outline-none focus:border-[var(--color-accent)]"

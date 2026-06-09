@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import {
   type ContinueWatchingRef,
   LEGACY_KEYS,
+  MS_PREFIX_KEYS,
   type SavedRef,
   STORAGE_KEYS,
   type WatchHistoryRef,
@@ -38,7 +39,27 @@ function readLegacy<T>(key: string): T | null {
   }
 }
 
+// Rename `ms.`-prefixed keys to their `ks.` counterpart. Straight value copy
+// (no shape change). Idempotent — skips a key if the `ks.` version already
+// holds data, then removes the old `ms.` key. Runs before the v1→v2 logic so
+// existing v2 users land on the new namespace untouched.
+function migratePrefix(): void {
+  for (const k of Object.keys(STORAGE_KEYS) as (keyof typeof STORAGE_KEYS)[]) {
+    const ksKey = STORAGE_KEYS[k];
+    const msKey = MS_PREFIX_KEYS[k];
+    const old = window.localStorage.getItem(msKey);
+    if (old === null) continue;
+    if (window.localStorage.getItem(ksKey) === null) {
+      window.localStorage.setItem(ksKey, old);
+    }
+    window.localStorage.removeItem(msKey);
+  }
+}
+
 function migrate(): void {
+  // Move any older `ms.`-namespaced data onto the `ks.` keys first.
+  migratePrefix();
+
   // Watchlist
   if (!window.localStorage.getItem(STORAGE_KEYS.watchlist)) {
     const old = readLegacy<LegacyV1Item[]>(LEGACY_KEYS.watchlist);
@@ -125,7 +146,7 @@ function migrate(): void {
   }
 
   // Notify any mounted hooks so they re-read from v2 keys.
-  window.dispatchEvent(new Event("ms-storage-change"));
+  window.dispatchEvent(new Event("ks-storage-change"));
 }
 
 export function Migrate() {

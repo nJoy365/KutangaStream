@@ -26,10 +26,10 @@ function subscribe(callback: () => void) {
     callback();
   }
   window.addEventListener("storage", onStorage);
-  window.addEventListener("ms-storage-change", onStorage);
+  window.addEventListener("ks-storage-change", onStorage);
   return () => {
     window.removeEventListener("storage", onStorage);
-    window.removeEventListener("ms-storage-change", onStorage);
+    window.removeEventListener("ks-storage-change", onStorage);
   };
 }
 
@@ -61,7 +61,7 @@ export function writeLocalStorageJSON<T>(key: string, value: T): void {
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
     cache.delete(key); // invalidate so next read parses fresh
-    window.dispatchEvent(new Event("ms-storage-change"));
+    window.dispatchEvent(new Event("ks-storage-change"));
   } catch {
     // quota or storage disabled — silently ignore
   }
