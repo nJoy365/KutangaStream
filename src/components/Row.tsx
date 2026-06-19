@@ -7,9 +7,11 @@ interface Props {
   title: string;
   items: MediaSummary[];
   emptyMessage?: string;
+  /** Optional per-item watch progress (0–1) for a bottom bar on the card. */
+  progressFor?: (media: MediaSummary) => number | undefined;
 }
 
-export function Row({ title, items, emptyMessage }: Props) {
+export function Row({ title, items, emptyMessage, progressFor }: Props) {
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   function scroll(dir: 1 | -1) {
@@ -56,7 +58,12 @@ export function Row({ title, items, emptyMessage }: Props) {
         className="no-scrollbar flex gap-3 overflow-x-auto px-4 sm:px-6 pb-2 scroll-smooth"
       >
         {items.map((m, i) => (
-          <PosterCard key={`${m.type}-${m.id}`} media={m} priority={i < 6} />
+          <PosterCard
+            key={`${m.type}-${m.id}`}
+            media={m}
+            priority={i < 6}
+            progress={progressFor?.(m)}
+          />
         ))}
       </div>
     </section>

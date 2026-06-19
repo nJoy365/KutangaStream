@@ -53,6 +53,7 @@ interface BackupPayload {
   settings?: unknown;
   embedSource?: unknown;
   embedSources?: unknown;
+  progress?: unknown;
 }
 
 function readJSON(key: string): unknown {
@@ -74,6 +75,7 @@ function collectPayload(): BackupPayload {
     settings: readJSON(STORAGE_KEYS.settings),
     embedSource: readJSON(STORAGE_KEYS.embedSource),
     embedSources: readJSON(STORAGE_KEYS.embedSources),
+    progress: readJSON(STORAGE_KEYS.progress),
   };
 }
 
@@ -103,6 +105,7 @@ function applyV2Payload(payload: BackupPayload): number {
     [STORAGE_KEYS.settings, payload.settings],
     [STORAGE_KEYS.embedSource, payload.embedSource],
     [STORAGE_KEYS.embedSources, payload.embedSources],
+    [STORAGE_KEYS.progress, payload.progress],
   ];
   let count = 0;
   for (const [k, v] of writes) {

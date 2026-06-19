@@ -4,9 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
 import { useWatchedEpisodes } from "@/hooks/useWatchedEpisodes";
+import { useWatchProgress } from "@/hooks/useWatchProgress";
 import { stillUrl } from "@/lib/images";
+import { progressFraction, progressKey } from "@/lib/storage";
 import { isNew } from "@/lib/time";
 import type { Episode, SeasonSummary } from "@/lib/types";
+import { ProgressBar } from "./ProgressBar";
 
 interface Props {
   tvId: number;
@@ -26,6 +29,7 @@ export function EpisodePicker({
   const router = useRouter();
   const { isWatched, toggle, setSeasonWatched, hydrated } =
     useWatchedEpisodes(tvId);
+  const { progress } = useWatchProgress();
   const listRef = useRef<HTMLDivElement | null>(null);
   const activeRef = useRef<HTMLLIElement | null>(null);
 
@@ -107,6 +111,10 @@ export function EpisodePicker({
             ep.seasonNumber === currentSeason && ep.episodeNumber === currentEpisode;
           const watched = hydrated && isWatched(ep.seasonNumber, ep.episodeNumber);
           const still = stillUrl(ep.stillPath, "w300");
+          // Resume bar — hidden once the episode is marked watched.
+          const frac = progressFraction(
+            progress[progressKey("tv", tvId, ep.seasonNumber, ep.episodeNumber)],
+          );
           return (
             <li key={ep.id} ref={active ? activeRef : null}>
               <div
@@ -138,6 +146,7 @@ export function EpisodePicker({
                     <span className="absolute top-1 left-1 px-1 py-0.5 text-[10px] font-bold rounded bg-black/80 text-white">
                       {ep.episodeNumber}
                     </span>
+                    {!watched && <ProgressBar fraction={frac} />}
                   </div>
                   <div className="flex-1 min-w-0 py-0.5">
                     <h3

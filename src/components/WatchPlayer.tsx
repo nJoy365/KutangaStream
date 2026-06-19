@@ -3,7 +3,7 @@ import { useEmbedSource } from "@/hooks/useEmbedSource";
 import { useEmbedSources } from "@/hooks/useEmbedSources";
 import { useSettings } from "@/hooks/useSettings";
 import { buildEmbedSource, pickSource } from "@/lib/embedSources";
-import { Player } from "./Player";
+import { PlayerSurface } from "./PlayerSurface";
 
 interface BaseProps {
   tmdbId: number;
@@ -62,7 +62,15 @@ export function WatchPlayer(props: Props) {
 
   return (
     <div>
-      <Player src={src} title={props.title} />
+      <PlayerSurface
+        key={src}
+        src={src}
+        title={props.title}
+        type={props.type}
+        tmdbId={props.tmdbId}
+        season={props.type === "tv" ? props.season : undefined}
+        episode={props.type === "tv" ? props.episode : undefined}
+      />
       <div className="mt-3">
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xs uppercase tracking-wider text-[var(--color-text-muted)]">

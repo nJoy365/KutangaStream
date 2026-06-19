@@ -1,12 +1,16 @@
+import type { Ref } from "react";
+
 interface Props {
   src: string;
   title?: string;
+  iframeRef?: Ref<HTMLIFrameElement>;
 }
 
-export function Player({ src, title }: Props) {
+export function Player({ src, title, iframeRef }: Props) {
   return (
     <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden border border-[var(--color-border)]">
       <iframe
+        ref={iframeRef}
         src={src}
         title={title ?? "Player"}
         className="absolute inset-0 w-full h-full"

@@ -3,11 +3,15 @@ import { useMemo } from "react";
 import { useContinueWatching } from "@/hooks/useContinueWatching";
 import { useLocalStorageJSON } from "@/hooks/useLocalStorageJSON";
 import { useMediaBatch } from "@/hooks/useMediaBatch";
+import { useWatchProgress } from "@/hooks/useWatchProgress";
 import {
   itemKey,
+  progressFraction,
+  progressKey,
   STORAGE_KEYS,
   type WatchedEpisodeKey,
 } from "@/lib/storage";
+import type { MediaSummary } from "@/lib/types";
 import { Row } from "./Row";
 
 const EMPTY_KEYS: WatchedEpisodeKey[] = [];
@@ -25,9 +29,25 @@ export function ContinueWatchingRow() {
     EMPTY_KEYS,
   );
 
+  const { progress } = useWatchProgress();
+
   // Only TV (defensive — Migrate strips legacy movie entries on boot).
   const tvItems = useMemo(() => items.filter((i) => i.type === "tv"), [items]);
   const { data } = useMediaBatch(tvItems);
+
+  // tvId → how far into its current (last-opened) episode the user is.
+  const progressByShow = useMemo(() => {
+    const m = new Map<number, number>();
+    for (const it of tvItems) {
+      if (it.lastSeason && it.lastEpisode) {
+        const frac = progressFraction(
+          progress[progressKey("tv", it.id, it.lastSeason, it.lastEpisode)],
+        );
+        if (frac > 0) m.set(it.id, frac);
+      }
+    }
+    return m;
+  }, [tvItems, progress]);
 
   // Build a map of tvId → watched-episode count for this show.
   const watchedByShow = useMemo(() => {
@@ -59,5 +79,11 @@ export function ContinueWatchingRow() {
     .filter((m): m is NonNullable<typeof m> => Boolean(m));
 
   if (summaries.length === 0) return null;
-  return <Row title="Continue Watching" items={summaries} />;
+  return (
+    <Row
+      title="Continue Watching"
+      items={summaries}
+      progressFor={(m: MediaSummary) => progressByShow.get(m.id)}
+    />
+  );
 }

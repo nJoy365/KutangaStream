@@ -1,7 +1,6 @@
 "use client";
 import { useEffect } from "react";
 import { useContinueWatching } from "@/hooks/useContinueWatching";
-import { useWatchedEpisodes } from "@/hooks/useWatchedEpisodes";
 import { useWatchHistory } from "@/hooks/useWatchHistory";
 import type { MinimalRef } from "@/lib/storage";
 
@@ -19,7 +18,8 @@ interface Props {
 }
 
 // Side-effecting client component: pings continue-watching + history whenever a
-// watch page mounts, and (for TV) marks the loaded episode as watched.
+// watch page mounts. Episodes are NOT marked watched here — that's driven by
+// actual playback progress in PlayerSurface (≥95% watched).
 export function TrackContinueWatching({
   media,
   season,
@@ -27,7 +27,6 @@ export function TrackContinueWatching({
   hasExplicitParams = true,
 }: Props) {
   const { items, upsert, hydrated: cwHydrated } = useContinueWatching();
-  const { markWatched } = useWatchedEpisodes(media.type === "tv" ? media.id : -1);
   const { add: addHistory } = useWatchHistory();
 
   useEffect(() => {
@@ -49,12 +48,10 @@ export function TrackContinueWatching({
       }
     }
 
-    // Continue Watching is TV-only — we can't tell whether a movie was
-    // actually watched (the iframe gives us no playback signal), so we
-    // refuse to mark them. History still tracks all opens for both types.
+    // Continue Watching is TV-only. History still tracks all opens for both
+    // types. "Watched" is no longer set on open — playback progress decides it.
     if (media.type === "tv" && season && episode) {
       upsert(media, { season, episode });
-      markWatched(season, episode);
     }
     addHistory({
       type: media.type,

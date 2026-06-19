@@ -27,8 +27,7 @@ Self-hosted movie + TV streaming UI built on Next.js. Catalog metadata comes fro
 
 ### Personal data (all local-only)
 - **Watchlist** + **Favorites** — heart / bookmark any title
-- **Continue Watching** row on home — TV shows only, auto-hides shows where every episode has been marked watched
-- **For You** row on home — personalised recommendations derived from your watch history (min. 5 history items required); fetches similar titles per recent entry, aggregates by frequency, excludes already-watched content
+- **Continue Watching** row on home — TV shows only, auto-hides shows where every episode has been marked watched; per-show progress bar on the card showing how far into the current episode you are
 - **Watch history** at `/history` with filters by title, type, **genre**, and date range
 - **Per-episode "watched"** markers (toggle ◯ / ✓), plus bulk **"Mark season watched/unwatched"** in the episode picker
 - **Watch progress badges** on TV poster cards anywhere they appear ("✓ N watched")
@@ -151,7 +150,7 @@ The `Settings → Backup & restore` panel offers download-as-file, copy-as-text 
 ```
 src/
   app/                              # Next.js App Router pages
-    page.tsx                        # Home (filter tabs + rows + For You)
+    page.tsx                        # Home (filter tabs + rows + Continue Watching)
     layout.tsx                      # Root layout (Toast, Migrate, Navbar, BottomNav)
     loading.tsx                     # Home skeleton
     search/page.tsx                 # /search?q=
@@ -167,11 +166,9 @@ src/
       search/route.ts               # Typeahead + full search
       media/[type]/[id]/route.ts    # Single-item hydration
       media-batch/route.ts          # Bulk hydration (returns episodeCount for TV)
-      recommendations/route.ts      # For You — similar-title aggregation
   components/                       # UI primitives + watch-page widgets
     CastScroller.tsx                # Horizontal cast card row with scroll arrows
     ContinueWatchingRow.tsx         # TV-only; hides fully-watched shows
-    ForYouRow.tsx                   # Personalised recommendation row
     RatingBadge.tsx                 # US certification badge (PG-13, TV-MA, etc.)
     TrailerButton.tsx               # YouTube trailer modal with Esc + backdrop close
     Row.tsx                         # Generic horizontal media row with scroll arrows

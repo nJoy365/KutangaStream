@@ -3,17 +3,30 @@ import Link from "next/link";
 import { posterUrl } from "@/lib/images";
 import { isNew } from "@/lib/time";
 import type { MediaSummary } from "@/lib/types";
+import { isUpcoming } from "./ComingSoonBanner";
+import { ProgressBar } from "./ProgressBar";
 import { WatchProgress } from "./WatchProgress";
 
 interface Props {
   media: MediaSummary;
   priority?: boolean;
+  /** 0–1 watch progress for the current episode/movie; renders a bottom bar. */
+  progress?: number;
 }
 
-export function PosterCard({ media, priority }: Props) {
+export function PosterCard({ media, priority, progress }: Props) {
   const href = `/${media.type}/${media.id}`;
   const img = posterUrl(media.posterPath, "w342");
   const subText = media.releaseYear ?? "";
+  const upcoming = isUpcoming(media.releaseDate);
+  const releaseLabel =
+    upcoming && media.releaseDate
+      ? new Date(media.releaseDate).toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        })
+      : null;
 
   return (
     <Link
@@ -27,7 +40,7 @@ export function PosterCard({ media, priority }: Props) {
             alt={media.title}
             fill
             sizes="(max-width: 640px) 160px, (max-width: 768px) 176px, 192px"
-            className="object-cover"
+            className={`object-cover ${upcoming ? "grayscale opacity-60" : ""}`}
             priority={priority}
           />
         ) : (
@@ -50,7 +63,18 @@ export function PosterCard({ media, priority }: Props) {
             </span>
           )}
         </div>
-        {media.type === "tv" && <WatchProgress tvId={media.id} />}
+        {media.type === "tv" && !upcoming && <WatchProgress tvId={media.id} />}
+        {progress !== undefined && !upcoming && <ProgressBar fraction={progress} />}
+        {releaseLabel && (
+          <div className="absolute inset-x-0 bottom-0 bg-black/85 px-2 py-1.5 text-center backdrop-blur-sm">
+            <span className="block text-[9px] font-bold uppercase tracking-wider text-[var(--color-accent)]">
+              Coming Soon
+            </span>
+            <span className="block text-[11px] font-medium text-white">
+              Releases {releaseLabel}
+            </span>
+          </div>
+        )}
       </div>
       <div className="mt-2 px-1">
         <h3 className="text-sm font-medium text-white line-clamp-1 group-hover:text-[var(--color-accent)] transition-colors">

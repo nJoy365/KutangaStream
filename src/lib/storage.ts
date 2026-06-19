@@ -18,6 +18,7 @@ export const STORAGE_KEYS = {
   settings: "ks.settings.v1",
   embedSource: "ks.embedSource.v1",
   embedSources: "ks.embedSources.v1",
+  progress: "ks.progress.v1",
 } as const;
 
 // Previous `ms.`-prefixed names for the SAME logical keys above. Read once
@@ -32,6 +33,9 @@ export const MS_PREFIX_KEYS: Record<keyof typeof STORAGE_KEYS, string> = {
   settings: "ms.settings.v1",
   embedSource: "ms.embedSource.v1",
   embedSources: "ms.embedSources.v1",
+  // Brand-new key — no `ms.` predecessor ever existed, so the prefix
+  // migration simply finds nothing here. Present only to satisfy the type.
+  progress: "ms.progress.v1",
 } as const;
 
 // Both namespaces — used when scanning for "all app keys" (backup detection,
@@ -82,4 +86,32 @@ export function watchedKey(
 // Compound key for movie/tv item identity in saved lists.
 export function itemKey(type: MediaType, id: number): string {
   return `${type}:${id}`;
+}
+
+// Playback position per title/episode, captured from the player's postMessage
+// stream. Keyed by `progressKey()`. `time`/`duration` are seconds.
+export interface WatchProgress {
+  time: number;
+  duration: number;
+  updatedAt: number;
+}
+
+export type ProgressMap = Record<string, WatchProgress>;
+
+// `movie:<id>` for films, `tv:<id>:<season>:<episode>` for episodes.
+export function progressKey(
+  type: MediaType,
+  id: number,
+  season?: number,
+  episode?: number,
+): string {
+  return type === "tv"
+    ? `tv:${id}:${season ?? 0}:${episode ?? 0}`
+    : `movie:${id}`;
+}
+
+// Fraction watched (0–1), guarding against missing/zero duration.
+export function progressFraction(p: WatchProgress | undefined): number {
+  if (!p || !p.duration || p.duration <= 0) return 0;
+  return Math.min(1, Math.max(0, p.time / p.duration));
 }

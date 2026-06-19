@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { Suspense } from "react";
 import { ContinueWatchingRow } from "@/components/ContinueWatchingRow";
-import { ForYouRow } from "@/components/ForYouRow";
 import { HomeFilterTabs, type HomeFilter } from "@/components/HomeFilterTabs";
 import { Row } from "@/components/Row";
 import {
@@ -102,9 +101,6 @@ export default async function Home({ searchParams }: Props) {
       <HomeFilterTabs current={filter} />
       <Suspense fallback={null}>
         <ContinueWatchingRow />
-      </Suspense>
-      <Suspense fallback={null}>
-        <ForYouRow />
       </Suspense>
       {resolved.map((r) => (
         <Row

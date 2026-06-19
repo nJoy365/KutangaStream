@@ -204,7 +204,11 @@ export default async function TvPage({ params, searchParams }: Props) {
       {/* Skip the smart redirect + tracker for unreleased shows. */}
       {!upcoming && (
         <>
-          <SmartTvDefaultRedirect tvId={tv.id} hasExplicitParams={hasExplicitParams} />
+          <SmartTvDefaultRedirect
+            tvId={tv.id}
+            seasons={tv.seasons}
+            hasExplicitParams={hasExplicitParams}
+          />
           <TrackContinueWatching
             media={tv}
             season={seasonNum}
