@@ -16,7 +16,9 @@ Self-hosted movie + TV streaming UI built on Next.js. Catalog metadata comes fro
 ### Watch
 - Movie watch page: backdrop hero → embedded player → metadata → cast → "More Like This"
 - TV watch page: same, plus a season/episode picker that auto-scrolls to the current episode
-- **Smart "resume last episode"**: opening `/tv/[id]` without `?season=&episode=` jumps to wherever you left off
+- **Playback progress + resume** — captures position from the player's `postMessage` stream into `localStorage`, then on load seeks the player back to where you left off (works cross-device once your backup is imported). Position is debounced to keep writes small.
+- **Smart "resume last episode"** (hybrid): opening `/tv/[id]` without `?season=&episode=` resumes the last episode you were on if it's unfinished, otherwise advances to the **next unwatched** episode in release order
+- **Auto "watched" at 95%** — an episode is marked watched once playback passes 95%, rather than the moment you open it
 - **Soft client-side navigation** when changing episodes (no full page reload, no scroll jump)
 - **User-configurable embed sources** — add, edit, remove, and reorder your own providers in **Settings → Embed sources**; switch between them on the watch page; preference persists per device
 - **Subtitle language preference** in Settings, passed to embed providers via `ds_lang`
@@ -24,12 +26,14 @@ Self-hosted movie + TV streaming UI built on Next.js. Catalog metadata comes fro
 - **Cast & crew scroller** — horizontal card row with hover-reveal left/right scroll arrows; shows photo, name, and character
 - **US age ratings** — certification badge (G / PG / PG-13 / R / TV-14 / TV-MA etc.) displayed on detail pages; genre tags link through to the genre browse page
 - **Coming Soon banner** for unreleased titles — shows poster, release date, certification, genres (linked), trailer button, and a note that streaming may not be available on premiere day
+- **Coming-soon poster treatment** — unreleased titles in any row are grayscaled with a "Releases {date}" banner on the poster card
 
 ### Personal data (all local-only)
 - **Watchlist** + **Favorites** — heart / bookmark any title
 - **Continue Watching** row on home — TV shows only, auto-hides shows where every episode has been marked watched; per-show progress bar on the card showing how far into the current episode you are
 - **Watch history** at `/history` with filters by title, type, **genre**, and date range
-- **Per-episode "watched"** markers (toggle ◯ / ✓), plus bulk **"Mark season watched/unwatched"** in the episode picker
+- **Per-episode "watched"** markers (toggle ◯ / ✓, also set automatically at 95% playback), plus bulk **"Mark season watched/unwatched"** in the episode picker
+- **Resume progress bars** under episode thumbnails in the picker and on Continue Watching cards — a thin bar showing how far into a started-but-unfinished episode you are
 - **Watch progress badges** on TV poster cards anywhere they appear ("✓ N watched")
 - **Backup & restore** in Settings — exports as a gzip+base64 envelope (~30% the size of raw JSON), imports JSON file or pasted text, with a confirm prompt before overwriting existing data. Clipboard fallback works on HTTP (e.g. when accessing the LAN IP from a phone).
 - **Toast notifications** on save/remove actions
@@ -167,6 +171,10 @@ src/
       media/[type]/[id]/route.ts    # Single-item hydration
       media-batch/route.ts          # Bulk hydration (returns episodeCount for TV)
   components/                       # UI primitives + watch-page widgets
+    WatchPlayer.tsx                 # Source picker + player wrapper
+    PlayerSurface.tsx               # Bridges the player's postMessage stream:
+                                    #   progress capture, resume seek, auto-watched
+    ProgressBar.tsx                 # Thin "resume" bar for thumbnails/posters
     CastScroller.tsx                # Horizontal cast card row with scroll arrows
     ContinueWatchingRow.tsx         # TV-only; hides fully-watched shows
     RatingBadge.tsx                 # US certification badge (PG-13, TV-MA, etc.)
@@ -193,6 +201,6 @@ This project is intended **for educational purposes only**. It is a personal lea
 
 - Posters and metadata come from TMDB; the embed iframe streams from a third-party provider you choose. None of those services are hosted by this app.
 - The TMDB key is **server-only** — it never leaves the Next.js server, so the bundle stays clean.
-- Continue Watching tracks at the *episode* level for TV, and is skipped entirely for movies (the embed iframe doesn't expose playback position, so there's no way to know if a movie was actually watched).
+- Playback position is read from the player's `postMessage` stream (it's reached through a relay chain and exposes a JW-style command API; `{ api: "seek", set: <seconds> }` is what we post to resume). Progress and resume work for both movies and TV; **Continue Watching** itself stays TV-only (episode-level) by design.
 - For ad-blocking inside the player, install [uBlock Origin](https://ublockorigin.com/) in your browser, or run [AdGuard Home](https://adguard.com/en/adguard-home/overview.html) on your network.
 - Local data lives in your browser's storage. Use **Settings → Backup & restore** before clearing site data or moving to a new device.
